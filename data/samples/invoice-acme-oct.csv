@@ -1,0 +1,21 @@
+id,date,timekeeperId,timekeeperName,role,hours,rate,amount,taskCode,activityCode,narrative,matterId
+te_01,2026-10-01,tk_okafor,Daniel Okafor,associate,2.5,620,1550,L120,A104,"Analyzed opposing party document production for privilege issues",ACME-LIT-0042
+te_02,2026-10-02,tk_okafor,Daniel Okafor,associate,3.2,620,1984,L350,A103,"Drafted motion to compel; reviewed opposing production; conferred with client regarding discovery",ACME-LIT-0042
+te_03,2026-10-02,tk_hale,Margaret Hale,partner,0.8,950,760,L120,A101,"Attention to file",ACME-LIT-0042
+te_04,2026-10-05,tk_hale,Margaret Hale,partner,2.0,950,1900,L330,A109,"Attended deposition of plaintiff expert witness Lena Brooks",ACME-LIT-0042
+te_05,2026-10-05,tk_okafor,Daniel Okafor,associate,2.0,620,1240,L330,A109,"Second-chaired deposition of plaintiff expert witness Lena Brooks",ACME-LIT-0042
+te_06,2026-10-05,tk_nair,Priya Nair,paralegal,2.0,280,560,L330,A109,"Attended deposition of plaintiff expert witness Lena Brooks",ACME-LIT-0042
+te_07,2026-10-07,tk_okafor,Daniel Okafor,associate,4.0,620,2480,L120,A110,"Non-working travel from Chicago office to Denver for expert site inspection",ACME-LIT-0042
+te_08,2026-10-08,tk_nair,Priya Nair,paralegal,0.5,280,140,L140,A104,"Organized and filed trial exhibits for production binders",ACME-LIT-0042
+te_09,2026-10-09,tk_okafor,Daniel Okafor,associate,6.0,620,3720,L210,A103,"Drafted opposition brief to defendant summary judgment motion",ACME-LIT-0042
+te_10,2026-10-09,tk_okafor,Daniel Okafor,associate,5.5,620,3410,L210,A102,"Researched case law on spoliation sanctions for opposition brief",ACME-LIT-0042
+te_11,2026-10-12,tk_okafor,Daniel Okafor,associate,0.4,620,248,L350,A103,"Reviewed and revised draft motion to compel",ACME-LIT-0042
+te_12,2026-10-14,tk_hale,Margaret Hale,partner,1.5,950,1425,L120,A109,"Client strategy meeting with Acme general counsel regarding settlement posture",ACME-LIT-0042
+te_13,2026-10-14,tk_okafor,Daniel Okafor,associate,1.5,620,930,L120,A109,"Client strategy meeting with Acme general counsel regarding settlement posture",ACME-LIT-0042
+te_14,2026-10-15,tk_hale,Margaret Hale,partner,1.2,950,1140,L120,A104,"Reviewed expert report from defense damages consultant",ACME-LIT-0042
+te_15,2026-10-16,tk_nair,Priya Nair,paralegal,1.5,280,420,L140,A103,"Prepared privilege log entries for October document production",ACME-LIT-0042
+te_16,2026-10-19,tk_okafor,Daniel Okafor,associate,3.0,620,1860,L310,A103,"Drafted responses to second set of interrogatories",ACME-LIT-0042
+te_17,2026-10-20,tk_hale,Margaret Hale,partner,0.7,950,665,L120,A106,"Telephone conference with opposing counsel regarding expert discovery deadlines",ACME-LIT-0042
+te_18,2026-10-21,tk_okafor,Daniel Okafor,associate,2.8,620,1736,L330,A101,"Prepared examination outline for defense CFO witness",ACME-LIT-0042
+te_19,2026-10-22,tk_nair,Priya Nair,paralegal,1.0,280,280,L140,A104,"Prepared chronology of key events from produced emails",ACME-LIT-0042
+te_20,2026-10-26,tk_hale,Margaret Hale,partner,1.0,950,950,L160,A104,"Reviewed draft mediation statement prepared by associate",ACME-LIT-0042

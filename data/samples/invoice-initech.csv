@@ -1,0 +1,11 @@
+id,date,timekeeperId,timekeeperName,role,hours,rate,amount,taskCode,activityCode,narrative,matterId
+in_01,2026-10-01,tk_ross,Elena Ross,partner,1.2,950,1140,L120,A104,"Reviewed Initech license agreement termination provisions",INITECH-LIT-0311
+in_02,2026-10-02,tk_cho,Marcus Cho,associate,2.6,600,1560,L250,A103,"Drafted motion to dismiss; researched personal jurisdiction; called client",INITECH-LIT-0311
+in_03,2026-10-03,tk_cho,Marcus Cho,associate,0.6,600,360,L120,A101,"Attention to file",INITECH-LIT-0311
+in_04,2026-10-06,tk_cho,Marcus Cho,associate,3,600,1800,L120,A110,"Non-working travel from Boston to Austin for client interviews",INITECH-LIT-0311
+in_05,2026-10-07,tk_lane,Dana Lane,paralegal,0.8,240,192,L140,A104,"Copying production documents for outside vendor",INITECH-LIT-0311
+in_06,2026-10-08,tk_cho,Marcus Cho,associate,6.5,600,3900,L210,A103,"Drafted opposition to motion for preliminary injunction",INITECH-LIT-0311
+in_07,2026-10-08,tk_cho,Marcus Cho,associate,4.5,600,2700,L210,A102,"Researched case law on irreparable harm standard",INITECH-LIT-0311
+in_08,2026-10-09,tk_ross,Elena Ross,partner,0.4,950,380,L120,A103,"Reviewed and revised client status memo",INITECH-LIT-0311
+in_09,2026-10-12,tk_lane,Dana Lane,paralegal,2,240,480,L140,A103,"Prepared privilege log for second document production",INITECH-LIT-0311
+in_10,2026-10-13,tk_ross,Elena Ross,partner,1.5,950,1425,L120,A106,"Telephone conference with Initech general counsel regarding settlement strategy",INITECH-LIT-0311
