@@ -127,7 +127,11 @@ async function step(name: string, method: string, route: string, fn: () => Promi
 const skip = (name: string, route: string, note: string) => rows.push({ step: name, route, status: "SKIP", ms: 0, note });
 
 function expectOk(r: { status: number; json: unknown; text: string }) {
-  if (r.status < 200 || r.status >= 300) throw new Error(`HTTP ${r.status}: ${r.text.slice(0, 200)}`);
+  if (r.status < 200 || r.status >= 300) {
+    // Next dev 500 pages embed the error in __NEXT_DATA__ — surface it
+    const m = r.text.match(/"message":"((?:[^"\\]|\\.){0,300})/);
+    throw new Error(`HTTP ${r.status}: ${m ? "next error: " + m[1] : r.text.slice(0, 200)}`);
+  }
   if (r.json === undefined) throw new Error(`non-JSON body: ${r.text.slice(0, 120)}`);
 }
 function assertNoErrs(e: string[]) {

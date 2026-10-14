@@ -264,7 +264,33 @@ export async function replaceClauses(rulebookId: string, clauses: Clause[]): Pro
   return out;
 }
 
-export async function runCompilePipeline(
+/**
+ * Per-rulebook mutex (survives dev hot-reload via globalThis). Compiles / recompiles of the same
+ * rulebook run strictly one after another, so delete+recreate can never race with an in-flight
+ * compile writing to rows of the previous run.
+ */
+const g = globalThis as unknown as { __counsellintCompileLocks?: Map<string, Promise<unknown>> };
+const locks: Map<string, Promise<unknown>> = (g.__counsellintCompileLocks ??= new Map());
+
+export function withRulebookLock<T>(rulebookId: string, fn: () => Promise<T>): Promise<T> {
+  const prev = locks.get(rulebookId) ?? Promise.resolve();
+  const run = prev.catch(() => undefined).then(fn);
+  const tail = run.catch(() => undefined);
+  locks.set(rulebookId, tail);
+  void tail.then(() => {
+    if (locks.get(rulebookId) === tail) locks.delete(rulebookId);
+  });
+  return run;
+}
+
+export function runCompilePipeline(
+  rulebookId: string,
+  emit: (e: CompileEvent) => void,
+): Promise<void> {
+  return withRulebookLock(rulebookId, () => runCompilePipelineUnlocked(rulebookId, emit));
+}
+
+async function runCompilePipelineUnlocked(
   rulebookId: string,
   emit: (e: CompileEvent) => void,
 ): Promise<void> {
