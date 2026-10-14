@@ -311,6 +311,8 @@ export const API = {
   review:           () => `/api/review`,                                // GET -> ReviewItem[]
   audit:            () => `/api/audit`,                                 // GET -> AuditEntry[]
   demoReset:        () => `/api/demo/reset`,                            // POST -> { ok: true }
+  uploadRulebook:   () => `/api/rulebooks/upload`,                      // POST multipart {file (.md/.txt/.pdf/.docx/.html), title?, clientName?, recordType?} -> Rulebook
+  uploadInvoice:    () => `/api/invoices/upload`,                       // POST multipart {file (CSV or LEDES 1998B), clientId?, matterId?, period?} -> Invoice
 } as const;
 
 export interface CreateRulebookReq {

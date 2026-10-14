@@ -170,12 +170,263 @@ async function segmentWithLlm(rulebookId: string, src: string): Promise<Clause[]
   return clauses;
 }
 
+/* ───────────────────────── Robust segmentation (G2) ─────────────────────────
+ * Real-world heading styles: "1.", "1.1", "1.1.1", "Section 4.2 Title", "§ 4.2", "Rule 3:", "Clause 2",
+ * "Article IV", markdown "#" headings (numbered or not), ALL-CAPS headings. "(a)"/"a."/"(i)" sub-items
+ * are never headings so they fold into the parent clause. Headings with no body (tables of contents,
+ * section headers followed directly by sub-headings) produce no clause. A heading whose body is only a
+ * bullet list yields one clause per bullet, numbered N.k. Offsets always satisfy slice(start,end)===text.
+ */
+
+const OBLIGATION =
+  /\b(must|shall|may not|will not|won't|cannot|can not|not (?:be )?billable|not permitted|prohibited|required|is limited to|no more than|not exceed|will be (?:rejected|reduced|disallowed)|should not|not reimbursable)\b/i;
+const BULLET = /^[ \t]*(?:[-*•▪◦·–])[ \t]+/;
+const SUBITEM = /^[ \t]*(?:\([a-z]{1,3}\)|\([ivx]{1,5}\)|[a-z]\)|[a-z]\.)[ \t]+/i;
+
+type RKind = "num" | "single" | "md" | "caps";
+interface RHeading {
+  lineStart: number;
+  bodyStart: number;
+  number: string | null;
+  title: string;
+  kind: RKind;
+}
+
+function autoTitle(text: string): string {
+  const words = text.replace(/[*_`]/g, "").split(/\s+/).filter(Boolean).slice(0, 5).join(" ");
+  return words.replace(/[.,;:]+$/, "");
+}
+
+function cleanTitle(t: string): string {
+  return t
+    .replace(/[*_`]+/g, "")
+    .replace(/[ \t]*(?:\.{2,}|…+|\t+)[ \t]*\d*[ \t]*$/, "") // ToC dot leaders + page number
+    .trim()
+    .replace(/[:.\-—–]+$/, "")
+    .trim();
+}
+
+/** Split the remainder of a heading line into title + optional inline body (index into `rest`). */
+function splitRest(rest: string): { title: string; inlineIdx: number | null } {
+  if (!rest.trim()) return { title: "", inlineIdx: null };
+  const dash = /[ \t]*(?:—|–|[ \t]-[ \t])[ \t]*/.exec(rest);
+  if (dash && dash.index > 0 && dash.index <= 80) {
+    const after = dash.index + dash[0].length;
+    return { title: cleanTitle(rest.slice(0, dash.index)), inlineIdx: rest.slice(after).trim() ? after : null };
+  }
+  // "**Title.** body" / "Title. Body sentence" / "Title: Body sentence"
+  const tb = /^(\**[A-Z][^.:!?]{0,70}?\**)[.:][ \t]*\**[ \t]+(?=\S)/.exec(rest);
+  if (tb && tb[1].trim().split(/\s+/).length <= 8 && rest.slice(tb[0].length).trim().length > 0) {
+    return { title: cleanTitle(tb[1]), inlineIdx: tb[0].length };
+  }
+  const t = rest.trim();
+  const words = t.split(/\s+/).length;
+  const sentence = (/[.;]$/.test(t) && words > 4) || (OBLIGATION.test(t) && words >= 4) || words > 14;
+  if (sentence) {
+    const lead = rest.length - rest.trimStart().length;
+    return { title: autoTitle(t), inlineIdx: lead };
+  }
+  return { title: cleanTitle(t), inlineIdx: null };
+}
+
+const R_PATTERNS: { re: RegExp; kind: RKind }[] = [
+  { re: /^(?:section|sec\.?|rule|clause|paragraph|para\.?|guideline|item)[ \t]+(\d+(?:\.\d+)*[a-z]?)\.?[ \t]*(?:[—–:\-.][ \t]*)?(.*)$/i, kind: "num" },
+  { re: /^§+[ \t]*(\d+(?:\.\d+)*[a-z]?)\.?[ \t]*(?:[—–:\-.][ \t]*)?(.*)$/, kind: "num" },
+  { re: /^article[ \t]+([IVXLC]+|\d+)\b\.?[ \t]*(?:[—–:\-.][ \t]*)?(.*)$/i, kind: "num" },
+  { re: /^(\d{1,3}(?:\.\d{1,3})+)\.?[ \t]+(?:[—–:\-][ \t]*)?(.*)$/, kind: "num" },
+  { re: /^(\d{1,3})\.[ \t]+(.*)$/, kind: "single" },
+];
+const MD_SINGLE = { re: /^(\d{1,3})\.?[ \t]+(.*)$/, kind: "num" as RKind };
+
+function parseRobustLine(line: string, pos: number, next: number, srcLen: number): RHeading | null {
+  let prefix = /^[ \t]{0,3}/.exec(line)![0].length;
+  let isMd = false;
+  const md = /^#{1,6}[ \t]+/.exec(line.slice(prefix));
+  if (md) {
+    prefix += md[0].length;
+    isMd = true;
+  }
+  const bold = /^(?:\*\*|__)/.exec(line.slice(prefix));
+  if (bold) prefix += bold[0].length;
+  const s = line.slice(prefix);
+  if (!s.trim()) return null;
+  const mk = (number: string | null, title: string, inlineAbs: number | null, kind: RKind): RHeading => ({
+    lineStart: pos,
+    bodyStart: inlineAbs !== null ? inlineAbs : Math.min(next, srcLen),
+    number,
+    title,
+    kind,
+  });
+
+  const pats = isMd ? [...R_PATTERNS.slice(0, 4), MD_SINGLE] : R_PATTERNS;
+  for (const { re, kind } of pats) {
+    const m = re.exec(s);
+    if (!m) continue;
+    const rest = m[2];
+    const restIdx = line.length - rest.length;
+    const { title, inlineIdx } = splitRest(rest);
+    if (kind === "single" && inlineIdx === null && !title) return null;
+    return mk(m[1], title || m[1], inlineIdx !== null ? pos + restIdx + inlineIdx : null, kind);
+  }
+  if (isMd) return mk(null, cleanTitle(s), null, "md");
+  // ALL-CAPS heading: letters present, no lowercase, short, not a bullet / sub-item
+  const t = s.replace(/[*_]+/g, "").trim();
+  if (
+    t.length >= 4 && t.length <= 80 && !/[a-z]/.test(t) && /[A-Z]{3,}/.test(t) &&
+    !/[.;,]$/.test(t) && t.split(/\s+/).length <= 10
+  ) {
+    return mk(null, cleanTitle(t) || t, null, "caps");
+  }
+  return null;
+}
+
+function findRobustHeadings(src: string): RHeading[] {
+  const out: RHeading[] = [];
+  let pos = 0;
+  while (pos <= src.length) {
+    let nl = src.indexOf("\n", pos);
+    if (nl === -1) nl = src.length;
+    let line = src.slice(pos, nl);
+    if (line.endsWith("\r")) line = line.slice(0, -1);
+    const h = BULLET.test(line) || SUBITEM.test(line) ? null : parseRobustLine(line, pos, nl + 1, src.length);
+    if (h) out.push(h);
+    if (nl >= src.length) break;
+    pos = nl + 1;
+  }
+  return out;
+}
+
+interface Piece {
+  number: string | null;
+  title: string;
+  start: number;
+  end: number;
+  kind: RKind;
+  parentIdx: number;
+}
+
+/** Split a body range into bullet items if (and only if) every non-blank line is a bullet or a continuation. */
+function splitBullets(src: string, start: number, end: number): [number, number][] | null {
+  const items: [number, number][] = [];
+  let pos = start;
+  let cur: [number, number] | null = null;
+  while (pos < end) {
+    let nl = src.indexOf("\n", pos);
+    if (nl === -1 || nl > end) nl = end;
+    const line = src.slice(pos, nl);
+    const b = BULLET.exec(line);
+    if (b) {
+      if (cur) items.push(cur);
+      cur = [pos + b[0].length, nl];
+    } else if (line.trim()) {
+      if (!cur) return null; // heading has its own text before the bullets
+      cur[1] = nl; // continuation / sub-item folds into the bullet
+    }
+    pos = nl + 1;
+  }
+  if (cur) items.push(cur);
+  return items.length >= 2 ? items : null;
+}
+
+function segmentRobust(rulebookId: string, src: string): Clause[] {
+  const hs = findRobustHeadings(src);
+  if (!hs.length) return [];
+  const pieces: Piece[] = [];
+  let parentIdx = -1;
+  hs.forEach((h, i) => {
+    const limit = i + 1 < hs.length ? hs[i + 1].lineStart : src.length;
+    const [start, end] = trimRange(src, h.bodyStart, Math.max(h.bodyStart, limit));
+    if (h.kind !== "single") parentIdx = i;
+    pieces.push({ number: h.number, title: h.title, start, end, kind: h.kind, parentIdx: h.kind === "single" ? parentIdx : -1 });
+  });
+
+  const hasNumbered = pieces.some((p) => p.number !== null && p.end > p.start);
+  // "1." lists that restart under different parents (or sit under a numbered section) get the parent's number as prefix
+  const singles = pieces.filter((p) => p.kind === "single" && p.end > p.start);
+  const restarts = singles.filter((p) => p.number === "1").length > 1;
+  const underNumbered = singles.length > 0 && singles.every((p) => p.parentIdx >= 0 && pieces[p.parentIdx].number !== null);
+  const prefixSingles = restarts || underNumbered;
+
+  const clauses: Clause[] = [];
+  const seen = new Set<string>();
+  let unnumberedOrd = 0;
+  const unnumberedNo = new Map<number, string>();
+  const push = (number: string, title: string, start: number, end: number) => {
+    let id = `${rulebookId}__${number}`;
+    if (seen.has(id)) {
+      let k = 2;
+      while (seen.has(`${id}_${k}`)) k++;
+      id = `${id}_${k}`;
+    }
+    seen.add(id);
+    clauses.push({ id, rulebookId, number, title, text: src.slice(start, end), start, end });
+  };
+
+  pieces.forEach((p, i) => {
+    if (p.end <= p.start) return; // ToC line / section header with no own body
+    let number = p.number;
+    if (number === null) {
+      // unnumbered (md / caps) heading: a clause only when the doc has no numbered clauses and it states a rule
+      if (hasNumbered) return;
+      if (!OBLIGATION.test(src.slice(p.start, p.end))) return;
+      number = String(++unnumberedOrd);
+      unnumberedNo.set(i, number);
+    } else if (p.kind === "single" && prefixSingles && p.parentIdx >= 0) {
+      const parent = pieces[p.parentIdx];
+      const pn = parent.number ?? unnumberedNo.get(p.parentIdx) ?? `S${p.parentIdx + 1}`;
+      number = `${pn}.${number}`;
+    }
+    const bullets = splitBullets(src, p.start, p.end);
+    if (bullets) {
+      bullets.forEach(([bs, be], k) => {
+        const [s2, e2] = trimRange(src, bs, be);
+        if (e2 > s2) push(`${number}.${k + 1}`, p.title || autoTitle(src.slice(s2, e2)), s2, e2);
+      });
+      return;
+    }
+    push(number, p.title || autoTitle(src.slice(p.start, p.end)), p.start, p.end);
+  });
+  return clauses;
+}
+
+/** Last resort: paragraphs that contain obligation words, numbered P1, P2, … */
+function segmentParagraphs(rulebookId: string, src: string): Clause[] {
+  const out: Clause[] = [];
+  const bounds: number[] = [0];
+  const re = /\n[ \t]*\r?\n/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(src))) bounds.push(m.index + m[0].length);
+  bounds.push(src.length);
+  for (let i = 0; i + 1 < bounds.length; i++) {
+    const [start, end] = trimRange(src, bounds[i], bounds[i + 1]);
+    if (end <= start) continue;
+    const text = src.slice(start, end);
+    if (!OBLIGATION.test(text)) continue;
+    const n = out.length + 1;
+    out.push({ id: `${rulebookId}__P${n}`, rulebookId, number: `P${n}`, title: autoTitle(text), text, start, end });
+  }
+  return out;
+}
+
 export async function segmentRulebook(rulebookId: string, sourceText: string): Promise<Clause[]> {
-  const byHeadings = segmentByHeadings(rulebookId, sourceText);
-  if (byHeadings.length > 0) return byHeadings;
   if (!sourceText.trim()) return [];
-  return segmentWithLlm(rulebookId, sourceText);
+  const strict = segmentByHeadings(rulebookId, sourceText);
+  let robust: Clause[] = [];
+  try {
+    robust = segmentRobust(rulebookId, sourceText);
+  } catch (e) {
+    console.error("[segment] robust segmentation failed", e);
+  }
+  if (strict.length > 0 && robust.length <= strict.length) return strict;
+  if (robust.length > 0) return robust;
+  try {
+    const viaLlm = await segmentWithLlm(rulebookId, sourceText);
+    if (viaLlm.length > 0 && viaLlm.every((c) => c.end > c.start)) return viaLlm;
+  } catch (e) {
+    console.warn("[segment] LLM segmentation failed; using paragraph fallback:", (e as Error).message);
+  }
+  return segmentParagraphs(rulebookId, sourceText);
 }
 
 /** exported for tests */
-export const _internal = { findHeadings, segmentByHeadings };
+export const _internal = { findHeadings, segmentByHeadings, segmentRobust, segmentParagraphs, findRobustHeadings };

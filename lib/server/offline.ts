@@ -4,6 +4,8 @@
 //   classify_clause (B6), compile_rule + repair_rule (B7), suggest_fix (B11).
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { compileFromText } from "@/lib/compiler/patterns";
+import { generateTests } from "@/lib/compiler/testgen";
 
 export type OfflineOpts = { name: string; system: string; user: string };
 
@@ -35,6 +37,7 @@ export function resetOfflineState(): void {
   refCache = null;
   testsCache = null;
   flawedAt.clear();
+  seededText = null;
 }
 
 /* ───────────────────────────── parsing helpers ───────────────────────────── */
@@ -151,12 +154,60 @@ function flawRule(rule: AnyRule): AnyRule {
   return r;
 }
 
+/** G1: clause body from a compile/repair prompt: the lines after `Clause §N "Title":` up to the first blank line. */
+function clauseBody(user: string): string {
+  const lines = user.split(/?
+/);
+  const i = lines.findIndex((l) => /^Clause\s+§/i.test(l.trim()));
+  if (i < 0) return "";
+  const out: string[] = [];
+  for (const l of lines.slice(i + 1)) {
+    if (!l.trim()) break;
+    out.push(l);
+  }
+  return out.join("
+").trim();
+}
+
+let seededText: string | null = null;
+function squash(s: string): string {
+  return s.replace(/\s+/g, " ").trim().toLowerCase();
+}
+/** Reference rules only apply to clauses that actually come from the seeded rulebooks. */
+function isSeededClause(body: string): boolean {
+  if (!body) return true; // can't tell: keep legacy behaviour
+  if (seededText === null) {
+    seededText = ["acme-ocg.md", "uscis-h1b.md"]
+      .map((f) => {
+        try {
+          return squash(readFileSync(dataPath(f), "utf8"));
+        } catch {
+          return "";
+        }
+      })
+      .join("
+");
+  }
+  return seededText.includes(squash(body));
+}
+
+/** G1: deterministic text -> DSL compiler + generated tests for clauses without a reference rule. */
+function compileFromClauseText(user: string, num: string | null, rt: "time_entry" | "h1b_petition" | null, title: string) {
+  const body = clauseBody(user);
+  const res = body ? compileFromText({ number: num ?? "?", title, text: body }, rt ?? "time_entry") : null;
+  if (!res) throw new Error(`offline: no confident deterministic rule for clause ${num ?? "(unknown)"} — needs human review`);
+  const tests = generateTests(res.rule, rt ?? "time_entry");
+  const pos = tests.filter((t) => t.expectFlagged).length;
+  if (pos < 2 || tests.length - pos < 2) throw new Error(`offline: could not generate enough tests for clause ${num ?? "(unknown)"}`);
+  return { rule: { ...(res.rule as unknown as AnyRule), id: "", clauseId: "" }, tests: tests as AnyTest[] };
+}
+
 function compileOutput(user: string, opts: { allowFlaw: boolean }): { rule: AnyRule; tests: AnyTest[] } {
   const num = clauseNumber(user);
   const rt = recordType(user);
   const title = clauseTitle(user);
-  const ref = findReference(num, rt, title);
-  if (!ref) throw new Error(`offline: no reference rule for clause ${num ?? "(unknown)"}`);
+  const ref = isSeededClause(clauseBody(user)) ? findReference(num, rt, title) : null;
+  if (!ref) return compileFromClauseText(user, num, rt, title);
   const key = num ?? String(ref.clauseId ?? "");
   const tests = offlineTests()[key.replace(/^.*__/, "")] ?? offlineTests()[key];
   if (!tests) throw new Error(`offline: no fixture tests for clause ${key}`);

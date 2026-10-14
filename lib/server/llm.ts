@@ -1,5 +1,6 @@
-// Server-only LLM client: OpenAI Responses API + structured outputs (zod -> JSON schema),
-// disk cache (data/cache/<sha256>.json) and DEMO_REPLAY support.
+// Server-only LLM client: OpenAI Responses API or Anthropic Claude (forced tool use) with
+// structured outputs (zod -> JSON schema), disk cache (data/cache/<sha256>.json) and DEMO_REPLAY support.
+// Provider order: OPENAI_API_KEY => openai; else ANTHROPIC_API_KEY => anthropic; else cache/offline.
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -29,8 +30,21 @@ export function setLlmOverride(fn: LlmOverride | null): void {
   override = fn;
 }
 
-function hasKey(): boolean {
+function hasOpenAiKey(): boolean {
   return !!process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== "";
+}
+
+function hasAnthropicKey(): boolean {
+  return !!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim() !== "";
+}
+
+type Provider = "openai" | "anthropic";
+
+/** Live provider, or null when no key is configured. */
+function liveProvider(): Provider | null {
+  if (hasOpenAiKey()) return "openai";
+  if (hasAnthropicKey()) return "anthropic";
+  return null;
 }
 
 function isReplay(): boolean {
@@ -47,10 +61,11 @@ export function llmAvailable(): boolean {
   return true;
 }
 
-/** "openai" | "replay" | "offline" — for status displays / logs. */
-export function llmMode(): "openai" | "replay" | "offline" {
+/** "openai" | "anthropic" | "replay" | "offline" — for status displays / logs. */
+export function llmMode(): "openai" | "anthropic" | "replay" | "offline" {
   if (forceOffline()) return "offline";
-  if (hasKey()) return "openai";
+  const p = liveProvider();
+  if (p) return p;
   return isReplay() ? "replay" : "offline";
 }
 
@@ -69,6 +84,93 @@ async function respondOffline<T>(schema: z.ZodType<T>, name: string, system: str
 
 function getModel(): string {
   return process.env.OPENAI_MODEL || "gpt-5";
+}
+
+function getAnthropicModel(): string {
+  return process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
+}
+
+/**
+ * Cache-key model id. OpenAI keeps the bare model id (existing cache files stay valid);
+ * Anthropic is namespaced so provider+model are both part of the key.
+ */
+function cacheModelId(provider: Provider): string {
+  return provider === "openai" ? getModel() : `anthropic:${getAnthropicModel()}`;
+}
+
+// ---- Anthropic (loaded lazily so the app still runs when @anthropic-ai/sdk is not installed) ----
+type AnthropicMessagesClient = {
+  messages: { create: (params: Record<string, unknown>) => Promise<{ content?: Array<Record<string, unknown>> }> };
+};
+type AnthropicCtor = new (opts: { apiKey?: string; timeout?: number; maxRetries?: number }) => AnthropicMessagesClient;
+
+let anthropicClient: AnthropicMessagesClient | null = null;
+let anthropicClientKey: string | undefined;
+
+async function getAnthropicClient(): Promise<AnthropicMessagesClient> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (anthropicClient && anthropicClientKey === apiKey) return anthropicClient;
+  let mod: Record<string, unknown>;
+  try {
+    const spec = "@anthropic-ai/sdk"; // variable + webpackIgnore: resolved at runtime, optional dependency
+    mod = (await import(/* webpackIgnore: true */ spec)) as Record<string, unknown>;
+  } catch {
+    throw new Error("ANTHROPIC_API_KEY is set but @anthropic-ai/sdk is not installed");
+  }
+  const def = mod.default as { default?: unknown } | undefined;
+  const Ctor = ((def && typeof def === "object" && def.default) || mod.default || mod.Anthropic) as AnthropicCtor;
+  anthropicClient = new Ctor({ apiKey, timeout: 120_000, maxRetries: 0 });
+  anthropicClientKey = apiKey;
+  return anthropicClient;
+}
+
+/** Anthropic tool input_schema must be an object schema with type "object" at the root. */
+function toToolInputSchema(js: Record<string, unknown>): Record<string, unknown> {
+  if (js.type === "object") return js;
+  return { type: "object", properties: { result: js }, required: ["result"] };
+}
+
+function sanitizeToolName(name: string): string {
+  const n = name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
+  return n || "result";
+}
+
+async function callAnthropic(model: string, name: string, system: string, user: string, jsonSchema: Record<string, unknown>): Promise<unknown> {
+  const delays = [1000, 2000, 4000];
+  const toolName = sanitizeToolName(name);
+  const inputSchema = toToolInputSchema(jsonSchema);
+  const wrapped = inputSchema !== jsonSchema;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    try {
+      const c = await getAnthropicClient();
+      const response = await c.messages.create({
+        model,
+        max_tokens: 8000,
+        system,
+        messages: [{ role: "user", content: user }],
+        tools: [{ name: toolName, description: "Return the structured result", input_schema: inputSchema }],
+        tool_choice: { type: "tool", name: toolName },
+      });
+      const block = (response.content ?? []).find((b) => b && b.type === "tool_use");
+      if (!block) {
+        throw new LlmValidationError(`LLM output for "${name}" had no tool_use block`, response.content, [{ message: "missing tool_use" }]);
+      }
+      const input = block.input;
+      if (wrapped && input && typeof input === "object" && "result" in (input as Record<string, unknown>)) {
+        return (input as Record<string, unknown>).result;
+      }
+      return input;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < delays.length && isRetryable(err)) {
+        await sleep(delays[attempt]);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
 }
 
 function getClient(): OpenAI {
@@ -115,6 +217,14 @@ function isRetryable(err: unknown): boolean {
     const s = err.status;
     if (s === undefined) return true;
     return s === 429 || s >= 500;
+  }
+  // Anthropic SDK errors (duck-typed: the SDK is loaded lazily). 529 = overloaded.
+  if (err instanceof LlmValidationError) return false;
+  const e = err as { status?: unknown; name?: string; error?: { type?: string; error?: { type?: string } } } | null;
+  if (e && typeof e === "object") {
+    if (e.name === "APIConnectionError" || e.name === "APIConnectionTimeoutError") return true;
+    if (e.error?.type === "overloaded_error" || e.error?.error?.type === "overloaded_error") return true;
+    if (typeof e.status === "number") return e.status === 429 || e.status === 529 || e.status >= 500;
   }
   // Raw network errors (fetch failures)
   const code = (err as { code?: string } | null)?.code;
@@ -170,33 +280,42 @@ export async function llmStructured<T>(opts: {
 
   if (forceOffline()) return respondOffline(schema, name, system, user);
 
-  const model = getModel();
-  const key = llmCacheKey(model, name, system, user);
-  const file = path.join(cacheDir(), `${key}.json`);
+  const provider = liveProvider();
+  // With a key: only that provider's cache. Without: any provider's cache (openai first), then offline.
+  const candidates: Provider[] = provider ? [provider] : ["openai", "anthropic"];
+  const file = path.join(cacheDir(), `${llmCacheKey(cacheModelId(candidates[0]), name, system, user)}.json`);
 
   // Cache read
-  let cached: { output: unknown } | null = null;
-  try {
-    cached = JSON.parse(await fs.readFile(file, "utf8"));
-  } catch {
-    cached = null;
-  }
-  if (cached && "output" in cached) {
-    if (isReplay()) await sleep(300 + Math.floor(Math.random() * 600));
-    return validate(schema, cached.output, name);
+  for (const p of candidates) {
+    const f = path.join(cacheDir(), `${llmCacheKey(cacheModelId(p), name, system, user)}.json`);
+    let cached: { output: unknown } | null = null;
+    try {
+      cached = JSON.parse(await fs.readFile(f, "utf8"));
+    } catch {
+      cached = null;
+    }
+    if (cached && "output" in cached) {
+      if (isReplay()) await sleep(300 + Math.floor(Math.random() * 600));
+      return validate(schema, cached.output, name);
+    }
   }
 
-  if (!hasKey()) {
+  if (!provider) {
     // No key + cache miss => deterministic offline responder (never cached, so a real key later is unaffected).
     return respondOffline(schema, name, system, user);
   }
 
-  const raw = await callOpenAI(model, name, system, user, toJsonSchema(schema as z.ZodTypeAny));
+  const model = provider === "openai" ? getModel() : getAnthropicModel();
+  const jsonSchema = toJsonSchema(schema as z.ZodTypeAny);
+  const raw =
+    provider === "openai"
+      ? await callOpenAI(model, name, system, user, jsonSchema)
+      : await callAnthropic(model, name, system, user, jsonSchema);
   const output = validate(schema, raw, name); // throws before caching invalid outputs
 
   try {
     await fs.mkdir(cacheDir(), { recursive: true });
-    await fs.writeFile(file, JSON.stringify({ name, model, createdAt: new Date().toISOString(), output: raw }, null, 2), "utf8");
+    await fs.writeFile(file, JSON.stringify({ name, provider, model, createdAt: new Date().toISOString(), output: raw }, null, 2), "utf8");
   } catch {
     // cache write failure is non-fatal
   }

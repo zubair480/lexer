@@ -18,3 +18,5 @@
 | /api/review | GET | LIVE | B11 | B12 PASS |
 | /api/audit | GET | LIVE | B11 | B12 PASS |
 | /api/demo/reset | POST | LIVE | B9 | B12 PASS {ok:true} (2.6–27s) |
+| /api/rulebooks/upload | POST multipart | LIVE | G2 | curl-verified (.txt) |
+| /api/invoices/upload | POST multipart | LIVE | G2 | curl-verified (LEDES) |
