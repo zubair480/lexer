@@ -1,0 +1,938 @@
+{
+  "3.1": [
+    {
+      "name": "three tasks in one 3.2h entry is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t1",
+          "date": "2026-10-02",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 3.2,
+          "rate": 620,
+          "amount": 1984,
+          "taskCode": "L350",
+          "activityCode": "A103",
+          "narrative": "Drafted motion to compel; reviewed opposing production; conferred with client regarding discovery",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "two tasks joined by 'and' over 0.5h is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t2",
+          "date": "2026-10-06",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 1.4,
+          "rate": 950,
+          "amount": 1330,
+          "taskCode": "L120",
+          "activityCode": "A104",
+          "narrative": "Reviewed expert report of Lena Brooks and called client regarding rebuttal strategy",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "single task over 0.5h passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t3",
+          "date": "2026-10-01",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 2.5,
+          "rate": 620,
+          "amount": 1550,
+          "taskCode": "L120",
+          "activityCode": "A104",
+          "narrative": "Analyzed opposing party document production for privilege issues",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "near miss: two tasks but only 0.4h passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t4",
+          "date": "2026-10-08",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 0.4,
+          "rate": 950,
+          "amount": 380,
+          "taskCode": "L120",
+          "activityCode": "A106",
+          "narrative": "Emailed client regarding deposition dates; updated case calendar",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    }
+  ],
+  "3.2": [
+    {
+      "name": "generic 'Attention to file' is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t5",
+          "date": "2026-10-02",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 0.8,
+          "rate": 950,
+          "amount": 760,
+          "taskCode": "L120",
+          "activityCode": "A101",
+          "narrative": "Attention to file",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "'attention to' with six words is still flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t6",
+          "date": "2026-10-09",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 0.6,
+          "rate": 620,
+          "amount": 372,
+          "taskCode": "L120",
+          "activityCode": "A104",
+          "narrative": "Attention to file regarding discovery issues",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "four-word narrative is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t7",
+          "date": "2026-10-12",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 0.3,
+          "rate": 950,
+          "amount": 285,
+          "taskCode": "L120",
+          "activityCode": "A106",
+          "narrative": "Call with client re",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "specific narrative passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t8",
+          "date": "2026-10-14",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 2.1,
+          "rate": 620,
+          "amount": 1302,
+          "taskCode": "L350",
+          "activityCode": "A103",
+          "narrative": "Drafted motion to compel production of custodial emails",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "near miss: reviewed named documents with subject passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t9",
+          "date": "2026-10-15",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 0.9,
+          "rate": 950,
+          "amount": 855,
+          "taskCode": "L310",
+          "activityCode": "A104",
+          "narrative": "Reviewed plaintiff's second set of interrogatories and requests for admission",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    }
+  ],
+  "3.3": [
+    {
+      "name": "three timekeepers attend the same deposition is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t10",
+          "date": "2026-10-05",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 2,
+          "rate": 950,
+          "amount": 1900,
+          "taskCode": "L330",
+          "activityCode": "A109",
+          "narrative": "Attended deposition of plaintiff expert witness Lena Brooks",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t11",
+          "date": "2026-10-05",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 2,
+          "rate": 620,
+          "amount": 1240,
+          "taskCode": "L330",
+          "activityCode": "A109",
+          "narrative": "Second-chaired deposition of plaintiff expert witness Lena Brooks",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t12",
+          "date": "2026-10-05",
+          "timekeeperId": "tk_nair",
+          "timekeeperName": "Priya Nair",
+          "role": "paralegal",
+          "hours": 2,
+          "rate": 280,
+          "amount": 560,
+          "taskCode": "L330",
+          "activityCode": "A109",
+          "narrative": "Attended deposition of plaintiff expert witness Lena Brooks",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "three timekeepers attend the same client meeting is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t13",
+          "date": "2026-10-20",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 1,
+          "rate": 950,
+          "amount": 950,
+          "taskCode": "L120",
+          "activityCode": "A109",
+          "narrative": "Attended case strategy meeting with Acme general counsel",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t14",
+          "date": "2026-10-20",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 1,
+          "rate": 620,
+          "amount": 620,
+          "taskCode": "L120",
+          "activityCode": "A109",
+          "narrative": "Attended case strategy meeting with Acme general counsel",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t15",
+          "date": "2026-10-20",
+          "timekeeperId": "tk_nair",
+          "timekeeperName": "Priya Nair",
+          "role": "paralegal",
+          "hours": 1,
+          "rate": 280,
+          "amount": 280,
+          "taskCode": "L120",
+          "activityCode": "A109",
+          "narrative": "Attended case strategy meeting with Acme general counsel",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "near miss: exactly two attendees passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t16",
+          "date": "2026-10-21",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 1.5,
+          "rate": 950,
+          "amount": 1425,
+          "taskCode": "L330",
+          "activityCode": "A109",
+          "narrative": "Attended deposition of corporate designee R. Alvarez",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t17",
+          "date": "2026-10-21",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 1.5,
+          "rate": 620,
+          "amount": 930,
+          "taskCode": "L330",
+          "activityCode": "A109",
+          "narrative": "Attended deposition of corporate designee R. Alvarez",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t18",
+          "date": "2026-10-21",
+          "timekeeperId": "tk_nair",
+          "timekeeperName": "Priya Nair",
+          "role": "paralegal",
+          "hours": 2,
+          "rate": 280,
+          "amount": 560,
+          "taskCode": "L310",
+          "activityCode": "A104",
+          "narrative": "Indexed document production for privilege log",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "three attendees on different days passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t19",
+          "date": "2026-10-22",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 2,
+          "rate": 950,
+          "amount": 1900,
+          "taskCode": "L330",
+          "activityCode": "A109",
+          "narrative": "Attended deposition of K. Osei",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t20",
+          "date": "2026-10-23",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 2,
+          "rate": 620,
+          "amount": 1240,
+          "taskCode": "L330",
+          "activityCode": "A109",
+          "narrative": "Attended deposition of L. Grant",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t21",
+          "date": "2026-10-26",
+          "timekeeperId": "tk_nair",
+          "timekeeperName": "Priya Nair",
+          "role": "paralegal",
+          "hours": 1,
+          "rate": 280,
+          "amount": 280,
+          "taskCode": "L120",
+          "activityCode": "A109",
+          "narrative": "Attended team strategy meeting on summary judgment",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    }
+  ],
+  "3.4": [
+    {
+      "name": "non-working travel at full rate is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t22",
+          "date": "2026-10-07",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 4,
+          "rate": 620,
+          "amount": 2480,
+          "taskCode": "L120",
+          "activityCode": "A110",
+          "narrative": "Non-working travel from Chicago office to Denver for expert site inspection",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "travel time narrative is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t23",
+          "date": "2026-10-16",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 2.5,
+          "rate": 950,
+          "amount": 2375,
+          "taskCode": "L330",
+          "activityCode": "A101",
+          "narrative": "Travel time to Milwaukee for deposition of K. Osei",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "ordinary drafting entry passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t24",
+          "date": "2026-10-13",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 3,
+          "rate": 620,
+          "amount": 1860,
+          "taskCode": "L210",
+          "activityCode": "A103",
+          "narrative": "Drafted answer and affirmative defenses to amended complaint",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "near miss: analysis of expert site report passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t25",
+          "date": "2026-10-19",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 1.2,
+          "rate": 950,
+          "amount": 1140,
+          "taskCode": "L120",
+          "activityCode": "A104",
+          "narrative": "Analyzed expert site inspection report on Denver warehouse",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    }
+  ],
+  "3.5": [
+    {
+      "name": "organizing and filing exhibits is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t26",
+          "date": "2026-10-08",
+          "timekeeperId": "tk_nair",
+          "timekeeperName": "Priya Nair",
+          "role": "paralegal",
+          "hours": 1.5,
+          "rate": 280,
+          "amount": 420,
+          "taskCode": "L330",
+          "activityCode": "A103",
+          "narrative": "Organized and filed deposition exhibits",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "copying production set is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t27",
+          "date": "2026-10-09",
+          "timekeeperId": "tk_nair",
+          "timekeeperName": "Priya Nair",
+          "role": "paralegal",
+          "hours": 1,
+          "rate": 280,
+          "amount": 280,
+          "taskCode": "L310",
+          "activityCode": "A101",
+          "narrative": "Copied production set for opposing counsel",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "substantive legal research passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t28",
+          "date": "2026-10-12",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 2.4,
+          "rate": 620,
+          "amount": 1488,
+          "taskCode": "L210",
+          "activityCode": "A102",
+          "narrative": "Researched Seventh Circuit authority on spoliation sanctions",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "near miss: paralegal substantive review passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t29",
+          "date": "2026-10-13",
+          "timekeeperId": "tk_nair",
+          "timekeeperName": "Priya Nair",
+          "role": "paralegal",
+          "hours": 1.8,
+          "rate": 280,
+          "amount": 504,
+          "taskCode": "L310",
+          "activityCode": "A104",
+          "narrative": "Reviewed production for privileged communications with outside auditors",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    }
+  ],
+  "3.6": [
+    {
+      "name": "one timekeeper bills 11 hours in a day is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t30",
+          "date": "2026-10-14",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 6,
+          "rate": 620,
+          "amount": 3720,
+          "taskCode": "L350",
+          "activityCode": "A103",
+          "narrative": "Drafted reply brief in support of motion to compel",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t31",
+          "date": "2026-10-14",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 5,
+          "rate": 620,
+          "amount": 3100,
+          "taskCode": "L120",
+          "activityCode": "A104",
+          "narrative": "Analyzed opposing expert report on damages model",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "12 hours split across three entries is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "t32",
+          "date": "2026-10-15",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 4,
+          "rate": 950,
+          "amount": 3800,
+          "taskCode": "L330",
+          "activityCode": "A101",
+          "narrative": "Prepared outline for deposition of CFO M. Ruiz",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t33",
+          "date": "2026-10-15",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 5,
+          "rate": 950,
+          "amount": 4750,
+          "taskCode": "L330",
+          "activityCode": "A109",
+          "narrative": "Attended deposition of CFO M. Ruiz",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t34",
+          "date": "2026-10-15",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 3,
+          "rate": 950,
+          "amount": 2850,
+          "taskCode": "L120",
+          "activityCode": "A106",
+          "narrative": "Conferred with Acme general counsel regarding deposition outcome",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "near miss: exactly 10 hours passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t35",
+          "date": "2026-10-16",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 6,
+          "rate": 620,
+          "amount": 3720,
+          "taskCode": "L350",
+          "activityCode": "A103",
+          "narrative": "Drafted opposition to motion for protective order",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t36",
+          "date": "2026-10-16",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 4,
+          "rate": 620,
+          "amount": 2480,
+          "taskCode": "L120",
+          "activityCode": "A104",
+          "narrative": "Analyzed deposition transcript of CFO M. Ruiz",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    },
+    {
+      "name": "two timekeepers with 8 hours each passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "t37",
+          "date": "2026-10-19",
+          "timekeeperId": "tk_hale",
+          "timekeeperName": "Margaret Hale",
+          "role": "partner",
+          "hours": 8,
+          "rate": 950,
+          "amount": 7600,
+          "taskCode": "L120",
+          "activityCode": "A104",
+          "narrative": "Analyzed summary judgment record and key exhibits",
+          "matterId": "ACME-LIT-0042"
+        },
+        {
+          "id": "t38",
+          "date": "2026-10-19",
+          "timekeeperId": "tk_okafor",
+          "timekeeperName": "Daniel Okafor",
+          "role": "associate",
+          "hours": 8,
+          "rate": 620,
+          "amount": 4960,
+          "taskCode": "L350",
+          "activityCode": "A103",
+          "narrative": "Drafted motion for summary judgment statement of facts",
+          "matterId": "ACME-LIT-0042"
+        }
+      ]
+    }
+  ],
+  "4.1": [
+    {
+      "name": "offered wage below prevailing wage is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "p1",
+          "beneficiaryName": "Sofia Lindqvist",
+          "employerName": "Acme Corp",
+          "offeredWage": 85000,
+          "lcaPrevailingWage": 98500,
+          "worksiteZip": "60601",
+          "lcaWorksiteZips": [
+            "60601",
+            "60606"
+          ],
+          "filingDate": "2026-04-15",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    },
+    {
+      "name": "offered wage one dollar below is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "p2",
+          "beneficiaryName": "Tomas Herrera",
+          "employerName": "Acme Corp",
+          "offeredWage": 111999,
+          "lcaPrevailingWage": 112000,
+          "worksiteZip": "94105",
+          "lcaWorksiteZips": [
+            "94105",
+            "94107"
+          ],
+          "filingDate": "2026-05-01",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    },
+    {
+      "name": "offered wage above prevailing wage passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "p3",
+          "beneficiaryName": "Arjun Mehta",
+          "employerName": "Acme Corp",
+          "offeredWage": 128000,
+          "lcaPrevailingWage": 112000,
+          "worksiteZip": "94105",
+          "lcaWorksiteZips": [
+            "94105",
+            "94107"
+          ],
+          "filingDate": "2026-04-15",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    },
+    {
+      "name": "near miss: offered wage equal to prevailing wage passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "p4",
+          "beneficiaryName": "Kenji Watanabe",
+          "employerName": "Acme Corp",
+          "offeredWage": 139000,
+          "lcaPrevailingWage": 139000,
+          "worksiteZip": "10001",
+          "lcaWorksiteZips": [
+            "10001"
+          ],
+          "filingDate": "2026-05-10",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    }
+  ],
+  "4.2": [
+    {
+      "name": "worksite ZIP not on LCA is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "p1",
+          "beneficiaryName": "Amara Okoye",
+          "employerName": "Acme Corp",
+          "offeredWage": 120000,
+          "lcaPrevailingWage": 110000,
+          "worksiteZip": "60611",
+          "lcaWorksiteZips": [
+            "60601",
+            "60606"
+          ],
+          "filingDate": "2026-05-01",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    },
+    {
+      "name": "LCA lists a single different ZIP is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "p2",
+          "beneficiaryName": "Lukas Becker",
+          "employerName": "Acme Corp",
+          "offeredWage": 135000,
+          "lcaPrevailingWage": 130000,
+          "worksiteZip": "10016",
+          "lcaWorksiteZips": [
+            "10001"
+          ],
+          "filingDate": "2026-05-15",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    },
+    {
+      "name": "worksite ZIP listed on LCA passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "p3",
+          "beneficiaryName": "Arjun Mehta",
+          "employerName": "Acme Corp",
+          "offeredWage": 128000,
+          "lcaPrevailingWage": 112000,
+          "worksiteZip": "94105",
+          "lcaWorksiteZips": [
+            "94105",
+            "94107"
+          ],
+          "filingDate": "2026-04-15",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    },
+    {
+      "name": "near miss: ZIP is the second LCA site passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "p4",
+          "beneficiaryName": "Mei Chen",
+          "employerName": "Acme Corp",
+          "offeredWage": 118000,
+          "lcaPrevailingWage": 115000,
+          "worksiteZip": "94107",
+          "lcaWorksiteZips": [
+            "94105",
+            "94107"
+          ],
+          "filingDate": "2026-05-20",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    }
+  ],
+  "4.3": [
+    {
+      "name": "filed 213 days before start is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "p1",
+          "beneficiaryName": "Sofia Lindqvist",
+          "employerName": "Acme Corp",
+          "offeredWage": 99000,
+          "lcaPrevailingWage": 98500,
+          "worksiteZip": "60601",
+          "lcaWorksiteZips": [
+            "60601",
+            "60606"
+          ],
+          "filingDate": "2026-03-02",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    },
+    {
+      "name": "filed 181 days before start is flagged",
+      "expectFlagged": true,
+      "records": [
+        {
+          "id": "p2",
+          "beneficiaryName": "Ravi Kumar",
+          "employerName": "Acme Corp",
+          "offeredWage": 125000,
+          "lcaPrevailingWage": 120000,
+          "worksiteZip": "94105",
+          "lcaWorksiteZips": [
+            "94105"
+          ],
+          "filingDate": "2026-04-03",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    },
+    {
+      "name": "filed 169 days before start passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "p3",
+          "beneficiaryName": "Arjun Mehta",
+          "employerName": "Acme Corp",
+          "offeredWage": 128000,
+          "lcaPrevailingWage": 112000,
+          "worksiteZip": "94105",
+          "lcaWorksiteZips": [
+            "94105",
+            "94107"
+          ],
+          "filingDate": "2026-04-15",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    },
+    {
+      "name": "near miss: filed exactly 180 days before start passes",
+      "expectFlagged": false,
+      "records": [
+        {
+          "id": "p4",
+          "beneficiaryName": "Elena Petrova",
+          "employerName": "Acme Corp",
+          "offeredWage": 140000,
+          "lcaPrevailingWage": 132000,
+          "worksiteZip": "10001",
+          "lcaWorksiteZips": [
+            "10001"
+          ],
+          "filingDate": "2026-04-04",
+          "requestedStartDate": "2026-10-01"
+        }
+      ]
+    }
+  ]
+}

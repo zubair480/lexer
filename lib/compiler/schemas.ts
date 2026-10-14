@@ -38,14 +38,29 @@ export const LeafConditionSchema = z.object({
   value: z.any(),
 });
 
-export const ConditionSchema: z.ZodType<Condition> = z.lazy(() =>
+/** Full recursive validator (internal). */
+export const StrictConditionSchema: z.ZodType<Condition> = z.lazy(() =>
   z.union([
-    z.object({ all: z.array(ConditionSchema) }),
-    z.object({ any: z.array(ConditionSchema) }),
-    z.object({ not: ConditionSchema }),
+    z.object({ all: z.array(StrictConditionSchema) }),
+    z.object({ any: z.array(StrictConditionSchema) }),
+    z.object({ not: StrictConditionSchema }),
     LeafConditionSchema,
   ]),
 ) as unknown as z.ZodType<Condition>;
+
+/**
+ * Exported ConditionSchema: validates recursively via StrictConditionSchema, but is an
+ * effects-wrapped z.any() so zod-to-json-schema (used by lib/server/llm.ts with
+ * $refStrategy "none") does NOT recurse/blow up on the lazy union. The prompt documents the shape.
+ */
+export const ConditionSchema: z.ZodType<Condition> = z.any().superRefine((v, ctx) => {
+  const r = StrictConditionSchema.safeParse(v);
+  if (!r.success) {
+    for (const issue of r.error.issues) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: issue.message, path: issue.path });
+    }
+  }
+}) as unknown as z.ZodType<Condition>;
 
 export const AggregateSchema = z.object({
   groupBy: z.array(FieldSchema),
@@ -85,7 +100,7 @@ export const CompileOutputSchema = z.object({
   tests: z.array(RuleTestSchema),
 });
 
-export type LlmRule = z.infer<typeof RuleSchema>;
+export type LlmRule = z.input<typeof RuleSchema>; // input type: llmStructured infers T from the schema input
 export type LlmRuleTest = z.infer<typeof RuleTestSchema>;
 export type CompileOutput = z.infer<typeof CompileOutputSchema>;
 

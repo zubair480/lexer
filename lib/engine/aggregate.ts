@@ -18,7 +18,8 @@ function compute(agg: Aggregate, group: EngineRecord[]): number {
     case "count":
       return group.length;
     case "sum":
-      return group.reduce((s, r) => s + toNum(getField(r, agg.field)), 0);
+      // Round to kill float noise (0.3 + 7.9 + 1.8 = 10.000000000000002).
+      return Math.round(group.reduce((s, r) => s + toNum(getField(r, agg.field)), 0) * 1e6) / 1e6;
     case "count_distinct": {
       const seen = new Set<string>();
       for (const r of group) {

@@ -18,8 +18,9 @@ function toNumber(v: unknown): number | null {
   return null;
 }
 
+/** Collapse internal whitespace, trim, lowercase. */
 function norm(v: unknown): string {
-  return String(v).trim().toLowerCase();
+  return String(v).replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 function parseUtcDate(v: unknown): number | null {
@@ -104,16 +105,18 @@ export function applyOp(op: Op, actual: unknown, value: unknown, record: EngineR
     case "matches": {
       if (typeof value !== "string") return false;
       try {
-        return new RegExp(value, "i").test(String(actual));
+        const re = new RegExp(value, "i");
+        const raw = String(actual);
+        return re.test(raw) || re.test(raw.replace(/\s+/g, " ").trim());
       } catch {
         return false;
       }
     }
     case "contains_any": {
-      const hay = String(actual).toLowerCase();
+      const hay = norm(actual);
       const phrases = Array.isArray(value) ? value : isMissing(value) ? [] : [value];
       return phrases
-        .map((p) => String(p).toLowerCase())
+        .map((p) => norm(p))
         .some((p) => p.length > 0 && hay.includes(p));
     }
     case "word_count_lt": {

@@ -7,10 +7,20 @@
       "severity": "reject",
       "scope": "entry",
       "recordType": "time_entry",
-      "violation": { "all": [
-        { "field": "hours", "op": "gt", "value": 0.5 },
-        { "field": "narrative", "op": "segment_count_gt", "value": 1 }
-      ] },
+      "violation": {
+        "all": [
+          {
+            "field": "hours",
+            "op": "gt",
+            "value": 0.5
+          },
+          {
+            "field": "narrative",
+            "op": "segment_count_gt",
+            "value": 1
+          }
+        ]
+      },
       "message": "Entry combines multiple tasks and exceeds 0.5 hours (block billing)."
     },
     {
@@ -20,10 +30,24 @@
       "severity": "reject",
       "scope": "entry",
       "recordType": "time_entry",
-      "violation": { "any": [
-        { "field": "narrative", "op": "word_count_lt", "value": 5 },
-        { "field": "narrative", "op": "contains_any", "value": ["attention to", "work on file", "review documents"] }
-      ] },
+      "violation": {
+        "any": [
+          {
+            "field": "narrative",
+            "op": "word_count_lt",
+            "value": 5
+          },
+          {
+            "field": "narrative",
+            "op": "contains_any",
+            "value": [
+              "attention to",
+              "work on file",
+              "review documents"
+            ]
+          }
+        ]
+      },
       "message": "Narrative is vague: under five words or uses a generic phrase without identifying the subject."
     },
     {
@@ -33,11 +57,29 @@
       "severity": "warn",
       "scope": "group",
       "recordType": "time_entry",
-      "when": { "any": [
-        { "field": "activityCode", "op": "eq", "value": "A109" },
-        { "field": "narrative", "op": "matches", "value": "deposition|meeting" }
-      ] },
-      "violation": { "groupBy": ["date"], "fn": "count_distinct", "field": "timekeeperId", "op": "gt", "value": 2 },
+      "when": {
+        "any": [
+          {
+            "field": "activityCode",
+            "op": "eq",
+            "value": "A109"
+          },
+          {
+            "field": "narrative",
+            "op": "matches",
+            "value": "\\battend(ed|ing|ance)?\\b.*\\b(deposition|meeting)\\b"
+          }
+        ]
+      },
+      "violation": {
+        "groupBy": [
+          "date"
+        ],
+        "fn": "count_distinct",
+        "field": "timekeeperId",
+        "op": "gt",
+        "value": 2
+      },
       "message": "More than two timekeepers billed for attending the same deposition or meeting on the same day."
     },
     {
@@ -47,12 +89,29 @@
       "severity": "reduce",
       "scope": "entry",
       "recordType": "time_entry",
-      "when": { "any": [
-        { "field": "activityCode", "op": "eq", "value": "A110" },
-        { "field": "narrative", "op": "matches", "value": "non-working travel|travel time" }
-      ] },
-      "violation": { "field": "rate", "op": "gt", "value": 0 },
-      "adjustment": { "type": "rate_factor", "factor": 0.5 },
+      "when": {
+        "any": [
+          {
+            "field": "activityCode",
+            "op": "eq",
+            "value": "A110"
+          },
+          {
+            "field": "narrative",
+            "op": "matches",
+            "value": "non-working travel|travel time"
+          }
+        ]
+      },
+      "violation": {
+        "field": "rate",
+        "op": "gt",
+        "value": 0
+      },
+      "adjustment": {
+        "type": "rate_factor",
+        "factor": 0.5
+      },
       "message": "Non-working travel must be billed at 50% of the standard rate."
     },
     {
@@ -62,7 +121,11 @@
       "severity": "reject",
       "scope": "entry",
       "recordType": "time_entry",
-      "violation": { "field": "narrative", "op": "matches", "value": "(filed|filing|copying|copied|photocopy|scheduling|organiz)" },
+      "violation": {
+        "field": "narrative",
+        "op": "matches",
+        "value": "\\b(fil(ed|ing)|cop(y|ied|ies|ying)|photocop(y|ied|ies|ying)|schedul(e|ed|es|ing)|organiz(e|ed|es|ing))\\b"
+      },
       "message": "Clerical work (filing, copying, scheduling, document organization) is not billable."
     },
     {
@@ -72,7 +135,16 @@
       "severity": "warn",
       "scope": "group",
       "recordType": "time_entry",
-      "violation": { "groupBy": ["timekeeperId", "date"], "fn": "sum", "field": "hours", "op": "gt", "value": 10 },
+      "violation": {
+        "groupBy": [
+          "timekeeperId",
+          "date"
+        ],
+        "fn": "sum",
+        "field": "hours",
+        "op": "gt",
+        "value": 10
+      },
       "message": "Timekeeper billed more than 10 hours on this matter in a single day."
     }
   ],
@@ -84,7 +156,11 @@
       "severity": "reject",
       "scope": "entry",
       "recordType": "h1b_petition",
-      "violation": { "field": "offeredWage", "op": "lt_field", "value": "lcaPrevailingWage" },
+      "violation": {
+        "field": "offeredWage",
+        "op": "lt_field",
+        "value": "lcaPrevailingWage"
+      },
       "message": "Offered wage is below the prevailing wage on the certified LCA."
     },
     {
@@ -94,7 +170,11 @@
       "severity": "reject",
       "scope": "entry",
       "recordType": "h1b_petition",
-      "violation": { "field": "worksiteZip", "op": "not_in_field", "value": "lcaWorksiteZips" },
+      "violation": {
+        "field": "worksiteZip",
+        "op": "not_in_field",
+        "value": "lcaWorksiteZips"
+      },
       "message": "Worksite ZIP is not listed on the certified LCA."
     },
     {
@@ -104,7 +184,11 @@
       "severity": "reject",
       "scope": "entry",
       "recordType": "h1b_petition",
-      "violation": { "field": "daysBeforeStart", "op": "gt", "value": 180 },
+      "violation": {
+        "field": "daysBeforeStart",
+        "op": "gt",
+        "value": 180
+      },
       "message": "Petition filed more than 180 days before the requested start date."
     }
   ]

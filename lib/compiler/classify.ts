@@ -30,7 +30,7 @@ const JUDGMENT_WORDS =
 const NUMBER_HINT =
   /\d|\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half|twice|double|percent|hours?|days?)\b/i;
 const OBLIGATION_WORDS =
-  /\b(must|shall|will be|will not|may not|not (?:be )?(?:billable|permitted|allowed|reimbursable)|no more than|not exceed|required|prohibited|rejected|disallowed|only|never|billed at)\b/i;
+  /\b(must|shall|will be|will not|may not|not (?:be )?(?:billable|permitted|allowed|reimbursable)|no more than|more than|less than|fewer than|at least|not exceed|exceed(?:s|ing)?|no \w+ may|may (?:only|bill)|not billable|required|prohibited|rejected|disallowed|only|never|billed at)\b/i;
 
 export function heuristicClassify(clause: Pick<Clause, "number" | "title" | "text">): { kind: ClauseKind; reason: string } {
   const text = `${clause.title}. ${clause.text}`;

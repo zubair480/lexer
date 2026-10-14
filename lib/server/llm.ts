@@ -6,6 +6,7 @@ import path from "node:path";
 import OpenAI from "openai";
 import type { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import { offlineRespond } from "./offline";
 
 export type LlmCallOpts = { name: string; system: string; user: string };
 export type LlmOverride = (opts: LlmCallOpts) => Promise<unknown>;
@@ -36,8 +37,34 @@ function isReplay(): boolean {
   return process.env.DEMO_REPLAY === "1";
 }
 
+/** LLM_MODE=offline forces the deterministic offline responder even when a key exists. */
+function forceOffline(): boolean {
+  return (process.env.LLM_MODE ?? "").trim().toLowerCase() === "offline";
+}
+
+/** Offline mode is always available (deterministic responder), so the demo never needs a key. */
 export function llmAvailable(): boolean {
-  return hasKey() || isReplay();
+  return true;
+}
+
+/** "openai" | "replay" | "offline" — for status displays / logs. */
+export function llmMode(): "openai" | "replay" | "offline" {
+  if (forceOffline()) return "offline";
+  if (hasKey()) return "openai";
+  return isReplay() ? "replay" : "offline";
+}
+
+function offlineDelayMs(): number {
+  const v = process.env.LLM_OFFLINE_DELAY_MS;
+  if (v !== undefined && v.trim() !== "" && Number.isFinite(Number(v))) return Math.max(0, Number(v));
+  return 400 + Math.floor(Math.random() * 800); // 400–1200 ms so the live stream animates
+}
+
+async function respondOffline<T>(schema: z.ZodType<T>, name: string, system: string, user: string): Promise<T> {
+  const raw = await offlineRespond({ name, system, user });
+  const ms = offlineDelayMs();
+  if (ms > 0) await sleep(ms);
+  return validate(schema, raw, name);
 }
 
 function getModel(): string {
@@ -141,6 +168,8 @@ export async function llmStructured<T>(opts: {
     return validate(schema, raw, name);
   }
 
+  if (forceOffline()) return respondOffline(schema, name, system, user);
+
   const model = getModel();
   const key = llmCacheKey(model, name, system, user);
   const file = path.join(cacheDir(), `${key}.json`);
@@ -158,7 +187,8 @@ export async function llmStructured<T>(opts: {
   }
 
   if (!hasKey()) {
-    throw new Error("LLM unavailable: set OPENAI_API_KEY or record the demo cache");
+    // No key + cache miss => deterministic offline responder (never cached, so a real key later is unaffected).
+    return respondOffline(schema, name, system, user);
   }
 
   const raw = await callOpenAI(model, name, system, user, toJsonSchema(schema as z.ZodTypeAny));

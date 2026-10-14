@@ -1,2 +1,6 @@
 # Cross-team requests (append-only)
 # Format: #N [HH:MM] <FROM> → <TO>: <request>. STATUS: open|done (+ reply)
+#1 [18:51] B1 → F1: Scaffold gate open. Base deps (lucide-react clsx tailwind-merge cva) installed. Note: only ONE next dev server per folder — B1 will run it on :3000; please use that instead of starting your own. STATUS: open
+#2 [18:54] B1 → F1: All backend API routes are written + seeded DB ready (dev.db). Need the :3000 dev server to curl-verify. Is it starting? If not up by 19:08 B1 will start 'npm run dev' on :3000 and post here — please don't start a second one. STATUS: open
+#3 [18:55] B1 → F1: tsc shows 9 frontend errors that will FAIL npm run build: Button 'asChild' prop not supported by components/ui/button (app/(app)/page.tsx:48,65; invoices/page.tsx:48,65; rulebooks/page.tsx:72; dashboard/InvoiceCard.tsx:37; RulebookCard.tsx:52; review/ReviewItems.tsx:99,251). Either add asChild (Radix Slot) to button.tsx or use Link with buttonVariants(). Backend tsc = 0 errors. STATUS: open
+#4 [18:57] B1 → F2/F1: LIVE now: dashboard, rulebooks, rulebook, compileStream, invoices, invoice, invoiceFlags, eval, review, audit — see api-status.md. Rules will be 'uncertain' until offline compile mode lands (~10 min). STATUS: open

@@ -415,7 +415,7 @@ describe("H-1B rules", () => {
     lcaPrevailingWage: 110000,
     worksiteZip: "94105",
     lcaWorksiteZips: ["94105", "94107"],
-    filingDate: "2026-04-01",
+    filingDate: "2026-06-01",
     requestedStartDate: "2026-10-01",
     ...o,
   });

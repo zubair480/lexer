@@ -6,12 +6,11 @@ import { prisma } from "@/lib/server/db";
 import { checkRecords } from "@/lib/engine";
 import type { EngineRecord } from "@/lib/engine/types";
 import { getActiveRules } from "@/lib/server/rulebooks";
-import * as seed from "@/lib/server/seed";
+import { loadGolden } from "@/lib/server/seed";
 
 function readGolden(): Record<string, string[]> {
   try {
-    const fn = (seed as { loadGolden?: () => Record<string, string[]> }).loadGolden;
-    if (typeof fn === "function") return fn();
+    return loadGolden();
   } catch {
     /* fall through to direct read */
   }

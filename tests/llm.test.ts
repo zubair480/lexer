@@ -41,8 +41,8 @@ describe("llm client", () => {
     try {
       const out = await llmStructured({ name: "t_cache", schema: Schema, system, user });
       expect(out.kind).toBe("compilable");
-      // miss with no key => unavailable
-      await expect(llmStructured({ name: "t_cache", schema: Schema, system, user: user + "-miss" })).rejects.toThrow(/LLM unavailable/);
+      // miss with no key => offline responder (B14); unknown name => no handler
+      await expect(llmStructured({ name: "t_cache", schema: Schema, system, user: user + "-miss" })).rejects.toThrow(/offline: no handler|LLM unavailable/);
     } finally {
       await fs.unlink(file).catch(() => {});
       if (savedKey !== undefined) process.env.OPENAI_API_KEY = savedKey;

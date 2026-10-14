@@ -4,11 +4,14 @@ import { logAudit } from "@/lib/server/audit";
 import { segmentRulebook } from "@/lib/compiler/segment";
 import { classifyClause } from "@/lib/compiler/classify";
 import { compileClause, type CompileProgress } from "@/lib/compiler/compile";
+import { llmAvailable } from "@/lib/server/llm";
+import { loadReferenceRules } from "@/lib/server/seed";
 import type {
   Clause,
   CompileEvent,
   CompiledRule,
   RecordType,
+  Rule,
   RuleStatus,
 } from "@/shared/contract";
 
@@ -113,6 +116,44 @@ export async function compileAndPersistClause(
   }
 }
 
+/**
+ * Offline fallback (no OPENAI_API_KEY and no DEMO_REPLAY): use the hand-written reference DSL
+ * for the seeded rulebooks. Persisted as "uncertain" (not test-verified) so an attorney must
+ * approve it explicitly. Returns null when no reference rule exists.
+ */
+async function referenceFallback(
+  clause: Clause,
+  emit: (e: CompileEvent) => void,
+): Promise<CompiledRule | null> {
+  let ref: Rule | undefined;
+  try {
+    ref = loadReferenceRules()[clause.rulebookId]?.find((r) => r.clauseId === clause.id);
+  } catch {
+    return null;
+  }
+  if (!ref) return null;
+  const ruleId = ruleIdFor(clause.id);
+  const dsl = JSON.stringify({ ...ref, id: ruleId, clauseId: clause.id });
+  const row = await prisma.rule.upsert({
+    where: { id: ruleId },
+    create: {
+      id: ruleId,
+      clauseId: clause.id,
+      rulebookId: clause.rulebookId,
+      status: "uncertain",
+      attempts: 0,
+      dsl,
+      tests: "[]",
+      testResults: "[]",
+    },
+    update: { status: "uncertain", attempts: 0, dsl, tests: "[]", testResults: "[]", approvedBy: null, approvedAt: null },
+  });
+  const compiled = toCompiledRule(row);
+  emit({ type: "rule_status", clauseId: clause.id, ruleId, status: "uncertain", attempt: 0 });
+  emit({ type: "rule_compiled", rule: compiled });
+  return compiled;
+}
+
 async function processClause(
   clause: Clause,
   recordType: RecordType,
@@ -153,6 +194,11 @@ async function processClause(
       emit({ type: "rule_status", clauseId: clause.id, ruleId, status: "needs_interpretation" as RuleStatus, attempt: 0 });
       emit({ type: "rule_compiled", rule: toCompiledRule(row) });
       return;
+    }
+
+    if (!llmAvailable()) {
+      const fallback = await referenceFallback(clause, emit);
+      if (fallback) return;
     }
 
     await compileAndPersistClause({ ...clause, kind, kindReason: reason }, recordType, emit);
