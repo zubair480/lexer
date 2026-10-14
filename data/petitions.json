@@ -1,0 +1,35 @@
+[
+  {
+    "id": "pet_01",
+    "beneficiaryName": "Arjun Mehta",
+    "employerName": "Acme Corp",
+    "offeredWage": 128000,
+    "lcaPrevailingWage": 112000,
+    "worksiteZip": "94105",
+    "lcaWorksiteZips": ["94105", "94107"],
+    "filingDate": "2026-04-15",
+    "requestedStartDate": "2026-10-01"
+  },
+  {
+    "id": "pet_02",
+    "beneficiaryName": "Sofia Lindqvist",
+    "employerName": "Acme Corp",
+    "offeredWage": 85000,
+    "lcaPrevailingWage": 98500,
+    "worksiteZip": "60601",
+    "lcaWorksiteZips": ["60601", "60606"],
+    "filingDate": "2026-03-02",
+    "requestedStartDate": "2026-10-01"
+  },
+  {
+    "id": "pet_03",
+    "beneficiaryName": "Kenji Watanabe",
+    "employerName": "Acme Corp",
+    "offeredWage": 142000,
+    "lcaPrevailingWage": 139000,
+    "worksiteZip": "10001",
+    "lcaWorksiteZips": ["10001", "10018"],
+    "filingDate": "2026-05-20",
+    "requestedStartDate": "2026-10-01"
+  }
+]

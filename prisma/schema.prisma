@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id        String     @id
+  name      String
+  rulebooks Rulebook[]
+  invoices  Invoice[]
+}
+
+model Rulebook {
+  id         String   @id
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title      String
+  recordType String   @default("time_entry")
+  sourceText String
+  version    Int      @default(1)
+  createdAt  DateTime @default(now())
+  clauses    Clause[]
+  rules      Rule[]
+}
+
+model Clause {
+  id         String   @id
+  rulebookId String
+  rulebook   Rulebook @relation(fields: [rulebookId], references: [id], onDelete: Cascade)
+  number     String
+  title      String
+  text       String
+  start      Int
+  end        Int
+  kind       String?
+  kindReason String?
+  ord        Int      @default(0)
+  rules      Rule[]
+}
+
+model Rule {
+  id          String    @id
+  clauseId    String
+  clause      Clause    @relation(fields: [clauseId], references: [id], onDelete: Cascade)
+  rulebookId  String
+  rulebook    Rulebook  @relation(fields: [rulebookId], references: [id], onDelete: Cascade)
+  status      String    @default("pending")
+  attempts    Int       @default(0)
+  dsl         String?
+  tests       String    @default("[]")
+  testResults String    @default("[]")
+  approvedBy  String?
+  approvedAt  DateTime?
+  updatedAt   DateTime  @updatedAt
+}
+
+model Invoice {
+  id         String      @id
+  clientId   String
+  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  matterId   String
+  period     String
+  recordType String      @default("time_entry")
+  entries    TimeEntry[]
+  flags      Flag[]
+}
+
+model TimeEntry {
+  id             String  @id
+  invoiceId      String
+  invoice        Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  ord            Int     @default(0)
+  date           String
+  timekeeperId   String
+  timekeeperName String
+  role           String
+  hours          Float
+  rate           Float
+  amount         Float
+  taskCode       String
+  activityCode   String
+  narrative      String
+  matterId       String
+}
+
+model Flag {
+  id           String   @id
+  invoiceId    String
+  invoice      Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  entryId      String
+  ruleId       String
+  clauseId     String
+  clauseNumber String
+  ruleTitle    String
+  severity     String
+  message      String
+  impactUsd    Float
+  status       String   @default("open")
+  note         String?
+  suggestion   String?
+  createdAt    DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id
+  actor      String
+  action     String
+  targetType String
+  targetId   String
+  note       String?
+  createdAt  DateTime @default(now())
+}
