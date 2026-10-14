@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { FileText, Loader2, Sparkles } from "lucide-react";
+import { FileText, Loader2, Sparkles, Upload } from "lucide-react";
 
 import type { RecordType } from "@/shared/contract";
 import { DEMO } from "@/shared/contract";
@@ -37,6 +37,8 @@ export default function NewRulebookPage() {
   const [sourceText, setSourceText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState(false);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const errors = {
     title: title.trim() ? null : "Title is required.",
@@ -76,6 +78,27 @@ export default function NewRulebookPage() {
     }
   }
 
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f || uploading) return;
+    setUploading(f.name);
+    try {
+      const rb = await api.uploadRulebook(f, {
+        title: title.trim() || undefined,
+        clientName: clientName.trim() || undefined,
+        recordType,
+      });
+      toast.success(`Read ${rb.clauses.length} clauses from ${f.name}`, { description: "Opening the compile view…" });
+      router.push(`/rulebooks/${rb.id}`);
+    } catch (err) {
+      toast.error(`Could not read ${f.name}`, {
+        description: err instanceof Error ? err.message : String(err),
+      });
+      setUploading(null);
+    }
+  }
+
   const wordCount = sourceText.trim() ? sourceText.trim().split(/\s+/).length : 0;
 
   return (
@@ -83,9 +106,20 @@ export default function NewRulebookPage() {
       <PageHeader
         eyebrow="Rulebooks"
         title="New rulebook"
-        subtitle="Paste client guidelines or a checklist. CounselLint will split it into clauses and compile each into a verified rule."
+        subtitle="Upload a PDF, Word, Markdown or text file, or paste the guidelines. Lexer splits them into clauses and compiles each into a verified rule."
         actions={
           <div className="flex gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf,.docx,.md,.markdown,.txt,.html,.htm,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html"
+              className="hidden"
+              onChange={onFile}
+            />
+            <Button type="button" onClick={() => fileRef.current?.click()} disabled={!!uploading || submitting}>
+              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              {uploading ? `Reading ${uploading}…` : "Upload document"}
+            </Button>
             <Button type="button" variant="outline" onClick={() => loadSample(ACME_OCG_SAMPLE)}>
               <Sparkles className="mr-2 h-4 w-4" />
               Load sample: Acme OCG

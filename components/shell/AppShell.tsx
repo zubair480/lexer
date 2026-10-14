@@ -2,76 +2,66 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BookOpenCheck,
-  FileSpreadsheet,
-  LayoutDashboard,
-  Scale,
-  ShieldCheck,
-  UserCheck,
-} from "lucide-react";
+import { BookOpenCheck, FileText, LayoutGrid, ScanSearch } from "lucide-react";
 import { DEMO } from "@/shared/contract";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, match: (p: string) => p === "/" },
+  { href: "/", label: "Overview", icon: LayoutGrid, match: (p: string) => p === "/" },
   { href: "/rulebooks", label: "Rulebooks", icon: BookOpenCheck, match: (p: string) => p.startsWith("/rulebooks") },
-  { href: "/invoices", label: "Invoices", icon: FileSpreadsheet, match: (p: string) => p.startsWith("/invoices") },
-  { href: "/review", label: "Review", icon: UserCheck, match: (p: string) => p.startsWith("/review") },
+  { href: "/invoices", label: "Invoices", icon: FileText, match: (p: string) => p.startsWith("/invoices") },
+  { href: "/review", label: "Review", icon: ScanSearch, match: (p: string) => p.startsWith("/review") },
 ];
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <div className={cn("flex items-center gap-2.5", className)}>
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-        <Scale className="h-4 w-4" />
-      </div>
-      <div className="leading-tight">
-        <div className="text-[15px] font-semibold tracking-tight text-slate-900">CounselLint</div>
-        <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Rulebooks → tested code
-        </div>
-      </div>
-    </div>
+    <Link href="/" className={cn("group flex items-center gap-3", className)}>
+      <span className="lg lg-green flex h-9 w-9 items-center justify-center rounded-[11px] text-[19px] font-semibold leading-none text-white">
+        §
+      </span>
+      <span className="leading-none">
+        <span className="block text-[19px] font-semibold tracking-[-0.04em] text-white">Lexer</span>
+        <span className="mt-1 block font-mono text-[9.5px] uppercase tracking-[0.18em] text-white/45">Rulebooks → code</span>
+      </span>
+    </Link>
   );
 }
 
 export function Sidebar() {
   const pathname = usePathname() ?? "/";
   return (
-    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r bg-white/80 px-4 py-5 backdrop-blur">
-      <Logo className="px-2" />
-      <nav className="mt-8 flex flex-col gap-1">
-        <div className="px-2 pb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Workspace
+    <aside className="sticky top-0 z-10 flex h-screen w-[232px] shrink-0 flex-col p-4">
+      <div className="glass flex h-full flex-col !rounded-[22px] p-4">
+        <Logo className="px-1 pt-1" />
+        <nav className="mt-9 flex flex-col gap-1">
+          {NAV.map(({ href, label, icon: Icon, match }, i) => {
+            const active = match(pathname);
+            return (
+              <Link
+                key={href}
+                href={href}
+                style={{ animationDelay: `${80 + i * 60}ms` }}
+                className={cn(
+                  "rise press group relative flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-[14px] transition-colors duration-300",
+                  active ? "bg-white/[0.09] text-white" : "text-white/55 hover:bg-white/[0.05] hover:text-white",
+                )}
+              >
+                {active ? <span className="neon-dot absolute -left-1 h-1.5 w-1.5 rounded-full bg-[#34e27f]" /> : null}
+                <Icon className="h-[17px] w-[17px] transition-transform duration-300 group-hover:scale-110" strokeWidth={1.6} />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="glass mt-auto !rounded-[16px] p-3.5">
+          <div className="flex items-center gap-2 text-[12px] font-medium text-white">
+            <span className="neon-dot pulse-soft h-1.5 w-1.5 rounded-full bg-[#34e27f]" />
+            Deterministic engine
+          </div>
+          <p className="mt-1.5 text-[11.5px] leading-relaxed text-white/50">
+            The model drafts the rules. Tested code decides compliance.
+          </p>
         </div>
-        {NAV.map(({ href, label, icon: Icon, match }) => {
-          const active = match(pathname);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                active
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-              )}
-            >
-              <Icon className={cn("h-4 w-4", active ? "opacity-100" : "opacity-70 group-hover:opacity-100")} />
-              {label}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="mt-auto rounded-xl border bg-slate-50 p-3 text-xs text-slate-600">
-        <div className="flex items-center gap-1.5 font-medium text-slate-800">
-          <ShieldCheck className="h-3.5 w-3.5 text-teal-600" />
-          Deterministic engine
-        </div>
-        <p className="mt-1 leading-relaxed">
-          AI writes rules and suggests fixes. It never decides compliance.
-        </p>
       </div>
     </aside>
   );
@@ -79,28 +69,25 @@ export function Sidebar() {
 
 export function TopBar() {
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-white/80 px-8 backdrop-blur">
-      <div className="flex items-center gap-3 text-sm">
-        <span className="text-muted-foreground">Client</span>
-        <span className="flex items-center gap-2 font-medium text-slate-900">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-900 text-[11px] font-semibold text-white">
-            AC
+    <header className="sticky top-0 z-30 px-6 pt-4">
+      <div className="glass flex h-12 items-center justify-between !rounded-[16px] px-5">
+        <div className="flex items-center gap-2.5 text-[13px]">
+          <span className="lg flex h-7 w-7 items-center justify-center rounded-[9px] text-[10.5px] font-semibold tracking-[-0.02em] text-white">AC</span>
+          <span className="text-white">{DEMO.clientName}</span>
+          <span className="text-white/25">/</span>
+          <span className="font-mono text-[11.5px] text-white/50">{DEMO.matterId}</span>
+        </div>
+        <div className="flex items-center gap-4 text-[12px]">
+          <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/60">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#f5c451]" />
+            Synthetic data
           </span>
-          {DEMO.clientName}
-        </span>
-        <span className="text-slate-300">/</span>
-        <span className="font-mono text-xs text-slate-600">{DEMO.matterId}</span>
-      </div>
-      <div className="flex items-center gap-3">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-          Synthetic data
-        </span>
-        <div className="flex items-center gap-2 text-sm text-slate-700">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-700">
-            JR
-          </div>
-          <span className="hidden xl:inline">{DEMO.approver}</span>
+          <span className="flex items-center gap-2 text-white/80">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-white/30 to-white/5 text-[10px] font-semibold text-white ring-1 ring-white/20">
+              JR
+            </span>
+            {DEMO.approver}
+          </span>
         </div>
       </div>
     </header>
@@ -109,9 +96,16 @@ export function TopBar() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-[#F7F8FA]">
+    <div className="dot-grid relative flex min-h-screen text-white">
+      <div className="aurora" aria-hidden>
+        <span className="a1" />
+        <span className="a2" />
+        <span className="a3" />
+        <span className="a4" />
+      </div>
+      <div className="grain" aria-hidden />
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <TopBar />
         <main className="flex-1">{children}</main>
       </div>

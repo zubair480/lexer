@@ -22,6 +22,7 @@ import { RuleCard } from "@/components/rulebook/RuleCard";
 import { LoadingState } from "@/components/common/LoadingState";
 import { ErrorState } from "@/components/common/ErrorState";
 import { EmptyState } from "@/components/common/EmptyState";
+import { PetitionCheck } from "@/components/rulebook/PetitionCheck";
 
 function describeEvent(ev: CompileEvent, clauseNum: (id: string) => string): string {
   switch (ev.type) {
@@ -274,6 +275,15 @@ export default function RulebookCompilePage() {
           <ShieldAlert className="h-4 w-4 shrink-0" />
           Rules are inactive until an attorney approves them.
         </div>
+      )}
+
+      {base.recordType === "h1b_petition" && !stream.isRunning && (
+        <PetitionCheck
+          rulebook={{
+            ...base,
+            rules: clauses.map((c) => ruleFor(c.id)).filter((r): r is CompiledRule => !!r),
+          }}
+        />
       )}
 
       <div className="grid grid-cols-[55fr_45fr] gap-6">

@@ -3,14 +3,9 @@ import type { API } from "@/shared/contract";
 export type ApiKey = keyof typeof API;
 
 /**
- * API keys (names in `API` from the contract) whose backend endpoints are LIVE.
- * Flip an endpoint on by adding its key here once .coord/api-status.md says LIVE.
- * Example: new Set<ApiKey>(["dashboard", "rulebooks", "rulebook", "compileStream"])
+ * Every backend endpoint is LIVE (see .coord/api-status.md), so the client talks to the
+ * real API by default. Set NEXT_PUBLIC_USE_MOCKS=1 to run the UI on in-memory mocks instead.
  */
-export const LIVE = new Set<string>([]);
-
-/** True when the endpoint should hit the real backend. NEXT_PUBLIC_USE_MOCKS=1 forces mocks everywhere. */
-export function isLive(key: ApiKey): boolean {
-  if (process.env.NEXT_PUBLIC_USE_MOCKS === "1") return false;
-  return LIVE.has(key);
+export function isLive(_key: ApiKey): boolean {
+  return process.env.NEXT_PUBLIC_USE_MOCKS !== "1";
 }

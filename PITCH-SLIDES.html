@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lexer Pitch Slides</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --page: #eceff2;
+    --paper: #ffffff;
+    --ink: #0b1220;
+    --ink2: #374151;
+    --mute: #6b7686;
+    --line: #e4e7ec;
+    --soft: #f5f7f9;
+    --brand: #0f9f5a;
+    --brand-soft: #e6f6ed;
+    --red: #d92d20;
+    --red-soft: #fdecea;
+    --amber: #b54708;
+    --amber-soft: #fef3e2;
+    --violet: #6d4aff;
+    --violet-soft: #efebff;
+    --sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+    --ease: cubic-bezier(0.2, 0.75, 0.2, 1);
+    --spring: cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--page); color: var(--ink); font-family: var(--sans); overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+  /* ── Stage & slides ── */
+  .stage { position: absolute; left: 50%; top: 50%; width: 1600px; height: 900px; }
+  .slide {
+    position: absolute; inset: 0; padding: 60px 88px 56px; display: flex; flex-direction: column;
+    background: var(--paper); border-radius: 18px; overflow: hidden;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 30px 70px -24px rgba(16, 24, 40, 0.22);
+    opacity: 0; pointer-events: none; transform: translateX(60px) scale(0.98);
+    transition: opacity 0.55s ease, transform 0.75s var(--ease);
+  }
+  .slide.active { opacity: 1; pointer-events: auto; transform: none; }
+  .slide.leave { opacity: 0; transform: translateX(-60px) scale(0.98); }
+  .slide::after { /* soft brand glow */
+    content: ""; position: absolute; width: 700px; height: 700px; right: -260px; top: -320px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(15, 159, 90, 0.10), transparent 65%); pointer-events: none;
+  }
+  .slide > * { position: relative; z-index: 1; }
+
+  /* generic entrance: elements with .a fade up when slide is active; --d sets delay */
+  .a { opacity: 0; transform: translateY(22px); }
+  .slide.active .a { animation: up 0.7s var(--ease) forwards; animation-delay: var(--d, 0s); }
+  .p { opacity: 0; transform: scale(0.6); }
+  .slide.active .p { animation: pop 0.55s var(--spring) forwards; animation-delay: var(--d, 0s); }
+
+  @keyframes up { to { opacity: 1; transform: none; } }
+  @keyframes pop { to { opacity: 1; transform: none; } }
+  @keyframes slam { 0% { opacity: 0; transform: rotate(-8deg) scale(2.6); } 70% { opacity: 1; transform: rotate(-8deg) scale(0.9); } 100% { opacity: 1; transform: rotate(-8deg) scale(1); } }
+  @keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-7px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+  @keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @keyframes ring { 0% { box-shadow: 0 0 0 0 var(--rc, rgba(217, 45, 32, 0.35)); } 100% { box-shadow: 0 0 0 22px rgba(0, 0, 0, 0); } }
+  @keyframes travel { 0% { left: 0; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes caret { 50% { opacity: 0; } }
+  @keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @keyframes strike { from { width: 0; } to { width: 100%; } }
+  @keyframes mark { to { background-color: var(--red-soft); color: var(--ink); } }
+
+  /* ── Shared bits ── */
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+  .logo { width: 32px; height: 32px; border-radius: 9px; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: 16px; font-weight: 800; }
+  .num { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--mute); }
+  .num b { color: var(--brand); }
+  .kicker { margin-top: 40px; font-size: 15px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand); display: flex; align-items: center; gap: 10px; }
+  .kicker::before { content: ""; width: 28px; height: 3px; border-radius: 2px; background: currentColor; transform-origin: left; transform: scaleX(0); }
+  .slide.active .kicker::before { animation: grow-x 0.6s var(--ease) forwards 0.15s; }
+  .kicker.red { color: var(--red); }
+  h1 { margin-top: 12px; font-size: 60px; line-height: 1.06; font-weight: 800; letter-spacing: -0.04em; }
+  h1 .g { color: var(--brand); } h1 .r { color: var(--red); }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 10px 28px -14px rgba(16, 24, 40, 0.14); }
+  .tag { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+  .tag.green { background: var(--brand-soft); color: var(--brand); }
+  .tag.red { background: var(--red-soft); color: var(--red); }
+  .tag.amber { background: var(--amber-soft); color: var(--amber); }
+  .tag.violet { background: var(--violet-soft); color: var(--violet); }
+  .tag.gray { background: var(--soft); color: var(--ink2); border: 1px solid var(--line); }
+  .src { font-size: 12.5px; font-weight: 500; color: var(--mute); }
+  svg.i { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .mono { font-family: var(--mono); }
+
+  /* ═════ 1 · PROBLEM ═════ */
+  .stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: auto; }
+  .stat { padding: 36px 34px; position: relative; overflow: hidden; }
+  .stat .n { font-size: 116px; font-weight: 800; letter-spacing: -0.055em; line-height: 0.95; font-variant-numeric: tabular-nums; }
+  .stat .n.r { color: var(--red); }
+  .stat .l { margin-top: 14px; font-size: 22px; font-weight: 600; line-height: 1.3; letter-spacing: -0.01em; }
+  .stat .src { margin-top: 18px; display: block; }
+  .stat .meter { margin-top: 18px; height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; }
+  .stat .meter i { display: block; height: 100%; border-radius: 4px; background: var(--red); transform-origin: left; transform: scaleX(0); }
+  .slide.active .stat .meter i { animation: grow-x 1.2s var(--ease) forwards; animation-delay: var(--md, 1s); }
+  .slide.active .stat.hot { animation: up 0.7s var(--ease) forwards var(--d), ring 1.1s ease-out 2.4s 1; }
+
+  .strip { margin-top: auto; display: flex; align-items: center; gap: 20px; padding: 20px 26px; border-radius: 16px; background: var(--soft); border: 1px solid var(--line); position: relative; }
+  .strip .chip { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--mute); }
+  .strip .narr { font-size: 21px; font-weight: 500; color: var(--ink2); flex: 1; }
+  .strip .narr b { font-weight: 600; padding: 2px 6px; border-radius: 6px; }
+  .slide.active .strip .narr b { animation: mark 0.35s ease forwards; }
+  .slide.active .strip .narr b:nth-of-type(1) { animation-delay: 2.6s; }
+  .slide.active .strip .narr b:nth-of-type(2) { animation-delay: 2.85s; }
+  .slide.active .strip .narr b:nth-of-type(3) { animation-delay: 3.1s; }
+  .strip .amt { position: relative; font-family: var(--mono); font-size: 24px; font-weight: 600; }
+  .strip .amt::after { content: ""; position: absolute; left: 0; top: 52%; height: 3px; width: 0; background: var(--red); }
+  .slide.active .strip .amt::after { animation: strike 0.4s ease forwards 3.5s; }
+  .stamp { opacity: 0; border: 3px solid var(--red); color: var(--red); border-radius: 10px; padding: 6px 14px; font-weight: 800; font-size: 20px; letter-spacing: 0.08em; transform: rotate(-8deg); }
+  .slide.active .stamp { animation: slam 0.5s var(--spring) forwards 3.7s; }
+  .slide.active .strip { animation: up 0.7s var(--ease) forwards var(--d), shake 0.45s ease 3.95s; }
+
+  /* ═════ 2 · SOLUTION ═════ */
+  .flow { display: grid; grid-template-columns: 1fr 70px 1fr 70px 1fr; align-items: stretch; margin-top: 40px; flex: 1; max-height: 440px; }
+  .link { position: relative; display: flex; align-items: center; }
+  .link .ln { height: 3px; width: 100%; background: #d5dae1; border-radius: 2px; transform-origin: left; transform: scaleX(0); }
+  .slide.active .link .ln { animation: grow-x 0.5s var(--ease) forwards; animation-delay: var(--d); }
+  .link .dot { position: absolute; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); opacity: 0; }
+  .slide.active .link .dot { animation: travel 1.6s linear infinite; animation-delay: var(--dd); }
+  .panel { padding: 26px 26px; display: flex; flex-direction: column; gap: 18px; }
+  .panel .h { display: flex; align-items: center; justify-content: space-between; }
+  .panel .h > span:first-child { font-size: 14px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); }
+  .quote { font-size: 30px; font-weight: 600; line-height: 1.4; color: var(--ink2); border-left: 4px solid var(--brand); padding-left: 16px; }
+  .code { background: #0b1220; color: #e6edf3; border-radius: 12px; padding: 18px 20px; font-family: var(--mono); font-size: 17px; line-height: 1.7; }
+  .code .k { color: #7ee2a8; } .code .s { color: #f9c97c; } .code .c { color: #8b96a8; }
+  .code .row { display: block; opacity: 0; transform: translateX(-8px); }
+  .slide.active .code .row { animation: up 0.35s ease forwards; animation-delay: var(--d); }
+  .code .cur { display: inline-block; width: 9px; height: 18px; background: #7ee2a8; vertical-align: -3px; margin-left: 4px; animation: caret 1s steps(1) infinite; }
+  .tests { display: flex; gap: 8px; align-items: center; font-size: 17px; font-weight: 700; color: var(--brand); }
+  .tests i { width: 28px; height: 9px; border-radius: 5px; background: var(--brand); transform-origin: left; transform: scaleX(0); }
+  .slide.active .tests i { animation: grow-x 0.3s ease forwards; animation-delay: var(--d); }
+  .entry { border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .entry .t { font-size: 18px; font-weight: 500; color: var(--ink2); line-height: 1.4; }
+  .entry .b { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+  .money { font-family: var(--mono); font-size: 24px; font-weight: 600; color: var(--red); }
+  .fixed { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; color: var(--brand); background: var(--brand-soft); border-radius: 12px; padding: 13px 16px; }
+  .slide.active .flag-hot { animation: pop 0.55s var(--spring) forwards 2.4s, ring 1.1s ease-out 2.9s 2; --rc: rgba(217, 45, 32, 0.4); }
+
+  .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 36px; }
+  .pillar { display: flex; align-items: center; gap: 16px; padding: 22px 24px; border-radius: 16px; background: var(--soft); }
+  .pillar .ic { width: 54px; height: 54px; border-radius: 14px; display: grid; place-items: center; flex-shrink: 0; background: #fff; border: 1px solid var(--line); }
+  .pillar b { font-size: 22px; font-weight: 700; letter-spacing: -0.015em; }
+  .pillar.ai .ic { color: var(--violet); } .pillar.cd .ic { color: var(--brand); } .pillar.law .ic { color: var(--amber); }
+
+  /* ═════ 3 · ARCHITECTURE ═════ */
+  .arch { position: relative; margin-top: 34px; flex: 1; }
+  .zone { position: absolute; border-radius: 20px; border: 2px dashed; padding: 14px 18px; }
+  .zone .zl { font-size: 13px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+  .zone.ai { left: 220px; top: 0; width: 640px; height: 262px; border-color: rgba(109, 74, 255, 0.35); background: rgba(109, 74, 255, 0.035); }
+  .zone.ai .zl { color: var(--violet); }
+  .zone.det { left: 220px; top: 300px; width: 1204px; height: 186px; border-color: rgba(15, 159, 90, 0.4); background: rgba(15, 159, 90, 0.04); }
+  .zone.det .zl { color: var(--brand); }
+  .node { position: absolute; width: 190px; padding: 16px 16px; border-radius: 16px; background: #fff; border: 1px solid var(--line); box-shadow: 0 10px 24px -14px rgba(16, 24, 40, 0.25); text-align: center; }
+  .node .ic { width: 46px; height: 46px; margin: 0 auto 10px; border-radius: 12px; display: grid; place-items: center; }
+  .node b { display: block; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+  .node span { display: block; margin-top: 4px; font-size: 13.5px; font-weight: 500; color: var(--mute); }
+  .node.v .ic { background: var(--violet-soft); color: var(--violet); }
+  .node.g .ic { background: var(--brand-soft); color: var(--brand); }
+  .node.a .ic { background: var(--amber-soft); color: var(--amber); }
+  .node.n .ic { background: var(--soft); color: var(--ink2); }
+  .node.r .ic { background: var(--red-soft); color: var(--red); }
+  .wire { position: absolute; height: 3px; background: #cfd5dd; border-radius: 2px; transform-origin: left; transform: scaleX(0); }
+  .wire.rev { transform-origin: right; }
+  .slide.active .wire.rev .pk { animation-direction: reverse; }
+  .wire.v { width: 3px; height: auto; transform-origin: top; transform: scaleY(0); }
+  .slide.active .wire { animation: grow-x 0.45s var(--ease) forwards; animation-delay: var(--d); }
+  .slide.active .wire.v { animation-name: grow-y; }
+  .wire .pk { position: absolute; top: -4px; width: 11px; height: 11px; margin-left: -5px; border-radius: 50%; background: var(--c, var(--brand)); opacity: 0; }
+  .slide.active .wire .pk { animation: travel 1.8s linear infinite; animation-delay: var(--dd); }
+  .wire.v .pk { top: auto; left: -4px; margin: 0; animation-name: travel-y !important; }
+  @keyframes travel-y { 0% { top: 0; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+  .loop { position: absolute; width: 54px; height: 54px; border-radius: 50%; border: 3px dashed var(--violet); display: grid; place-items: center; background: #fff; color: var(--violet); }
+  .loop { opacity: 0; }
+  .slide.active .loop { animation: pop 0.5s var(--spring) forwards var(--d), spin 6s linear infinite calc(var(--d) + 0.5s); }
+  .loop-l { position: absolute; font-size: 13px; font-weight: 700; color: var(--violet); }
+  .stack { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 18px; }
+  .stack .tag { font-size: 14.5px; padding: 8px 14px; }
+
+  /* ═════ 4 · BUSINESS ═════ */
+  .biz { display: grid; grid-template-columns: 1fr 1.55fr; gap: 26px; margin-top: 40px; flex: 1; min-height: 0; }
+  .roi { padding: 30px 32px; display: flex; flex-direction: column; background: linear-gradient(160deg, #0b1220, #14213a); color: #fff; border: 0; }
+  .roi .lbl { font-size: 13px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #7ee2a8; }
+  .roi h3 { margin-top: 10px; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; }
+  .eqn { margin-top: 26px; display: grid; gap: 12px; }
+  .eqn .row { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 18px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); font-size: 18px; font-weight: 500; color: rgba(255, 255, 255, 0.7); }
+  .eqn .row b { font-size: 26px; font-weight: 700; color: #fff; }
+  .eqn .row b.r { color: #ff8a80; }
+  .roi .total { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+  .roi .total b { display: block; font-size: 58px; font-weight: 800; letter-spacing: -0.045em; color: #7ee2a8; line-height: 1; }
+  .roi .total > span { font-size: 17px; font-weight: 500; color: rgba(255, 255, 255, 0.7); }
+  .uses .hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .uses .hd b { font-size: 15px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); }
+  .ucs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .uc { padding: 22px 22px; display: flex; flex-direction: column; gap: 10px; position: relative; overflow: hidden; }
+  .uc .row1 { display: flex; align-items: center; gap: 12px; }
+  .uc .ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; }
+  .uc .row1 b { font-size: 20px; font-weight: 700; letter-spacing: -0.015em; }
+  .uc .row1 .tag { margin-left: auto; }
+  .uc .big { font-size: 46px; font-weight: 800; letter-spacing: -0.045em; line-height: 1; }
+  .uc .what { font-size: 16px; font-weight: 600; color: var(--ink2); }
+  .uc .src { margin-top: auto; }
+  .uc::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c); transform-origin: top; transform: scaleY(0); }
+  .slide.active .uc::before { animation: grow-y 0.6s var(--ease) forwards; animation-delay: var(--d); }
+  .uc.legal { --c: var(--brand); } .uc.legal .ic { background: var(--brand-soft); color: var(--brand); } .uc.legal .big { color: var(--brand); }
+  .uc.health { --c: var(--red); } .uc.health .ic { background: var(--red-soft); color: var(--red); } .uc.health .big { color: var(--red); }
+  .uc.exp { --c: var(--amber); } .uc.exp .ic { background: var(--amber-soft); color: var(--amber); } .uc.exp .big { color: var(--amber); }
+  .uc.imm { --c: var(--violet); } .uc.imm .ic { background: var(--violet-soft); color: var(--violet); } .uc.imm .big { color: var(--violet); }
+  .model { margin-top: 16px; display: flex; gap: 12px; align-items: center; padding: 16px 20px; border-radius: 14px; background: var(--soft); font-size: 18px; font-weight: 600; }
+  .model .tag { font-size: 15px; }
+
+  /* nav */
+  .chrome { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--line); box-shadow: 0 4px 16px -6px rgba(16, 24, 40, 0.2); z-index: 10; opacity: 0.35; transition: opacity 0.25s; }
+  .chrome:hover { opacity: 1; }
+  .chrome button { background: none; border: 0; color: var(--ink); cursor: pointer; font: 700 14px var(--sans); padding: 6px 10px; border-radius: 999px; }
+  .chrome button:hover { background: var(--soft); }
+  .pips { display: flex; gap: 6px; }
+  .pip { width: 8px; height: 8px; border-radius: 50%; background: #d0d5dd; cursor: pointer; transition: all 0.3s; }
+  .pip.on { background: var(--brand); width: 22px; border-radius: 6px; }
+
+  @media print {
+    @page { size: 1600px 900px; margin: 0; }
+    html, body { overflow: visible; height: auto; background: #fff; }
+    .stage { position: static; transform: none !important; }
+    .slide { position: relative; opacity: 1 !important; transform: none !important; break-after: page; height: 900px; border-radius: 0; box-shadow: none; }
+    .slide *, .slide *::before, .slide *::after { animation: none !important; opacity: 1 !important; transform: none !important; }
+    .stamp { transform: rotate(-8deg) !important; }
+    .chrome { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+
+  <!-- ═════════════════ 1 · PROBLEM ═════════════════ -->
+  <section class="slide active">
+    <div class="top a"><div class="brand"><span class="logo">L</span>Lexer</div><div class="num"><b>01</b> / 04</div></div>
+    <div class="kicker red a" style="--d:.1s">The problem</div>
+    <h1 class="a" style="--d:.2s">Firms do the work. <span class="r">Clients cut the bill.</span></h1>
+
+    <div class="stats3">
+      <div class="card stat hot a" style="--d:.45s; --md:1.1s">
+        <div class="n r"><span data-count="56" data-delay="600">0</span>%</div>
+        <div class="l">of legal invoices break a billing rule</div>
+        <div class="meter"><i style="width:56%"></i></div>
+        <span class="src">LegalBillReview.com × In-House Connect, 2025</span>
+      </div>
+      <div class="card stat hot a" style="--d:.6s; --md:1.3s">
+        <div class="n r"><span data-count="4" data-delay="750">0</span>–<span data-count="8" data-delay="750">0</span>%</div>
+        <div class="l">cut from invoices by client AI review</div>
+        <div class="meter"><i style="width:8%"></i></div>
+        <span class="src">Wolters Kluwer BillAnalyzer pilot, via LawNext</span>
+      </div>
+      <div class="card stat a" style="--d:.75s; --md:1.5s">
+        <div class="n"><span data-count="12" data-delay="900">0</span>%</div>
+        <div class="l">of billable work never gets invoiced</div>
+        <div class="meter"><i style="width:12%; background: var(--ink)"></i></div>
+        <span class="src">Clio Legal Trends benchmarks, 2025 (88% realization)</span>
+      </div>
+    </div>
+
+    <div class="strip a" style="--d:2.2s; margin-top:auto">
+      <span class="chip">3.4 h · Associate</span>
+      <span class="narr"><b>Reviewed documents</b>; <b>drafted motion</b>; <b>called client</b></span>
+      <span class="amt">$1,445</span>
+      <span class="stamp">REJECTED</span>
+    </div>
+  </section>
+
+  <!-- ═════════════════ 2 · SOLUTION ═════════════════ -->
+  <section class="slide">
+    <div class="top a"><div class="brand"><span class="logo">L</span>Lexer</div><div class="num"><b>02</b> / 04</div></div>
+    <div class="kicker a" style="--d:.1s">The solution</div>
+    <h1 class="a" style="--d:.2s">Check every invoice <span class="g">before it goes out.</span></h1>
+
+    <div class="flow">
+      <div class="card panel a" style="--d:.4s">
+        <div class="h"><span>Guideline</span><span class="tag gray">Prose</span></div>
+        <div class="quote">"One task per time entry."</div>
+        <span class="src" style="margin-top:auto">Client's outside-counsel guidelines</span>
+      </div>
+      <div class="link"><span class="ln" style="--d:.8s"></span><span class="dot" style="--dd:1.3s"></span></div>
+      <div class="card panel a" style="--d:.9s">
+        <div class="h"><span>Rule</span><span class="tag green p" style="--d:2.1s">Approved</span></div>
+        <div class="code"><span class="row" style="--d:1.2s"><span class="k">when</span> hours &gt; <span class="s">0.5</span></span><span class="row" style="--d:1.4s"><span class="k">flag</span> tasks &gt; <span class="s">1</span></span><span class="row" style="--d:1.6s"><span class="c">// §3.1</span><span class="cur"></span></span></div>
+        <div class="tests"><i style="--d:1.7s"></i><i style="--d:1.8s"></i><i style="--d:1.9s"></i><i style="--d:2s"></i>&nbsp;4/4 tests</div>
+      </div>
+      <div class="link"><span class="ln" style="--d:2.1s"></span><span class="dot" style="--dd:2.6s"></span></div>
+      <div class="card panel a" style="--d:2.2s">
+        <div class="h"><span>Invoice</span><span class="tag red flag-hot" style="opacity:0;transform:scale(.6)">Flagged</span></div>
+        <div class="entry"><div class="t">Reviewed docs; drafted motion; called client</div><div class="b"><span class="tag red">§3.1</span><span class="money">−$1,445</span></div></div>
+        <div class="fixed a" style="--d:3.1s"><svg class="i" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M20 6L9 17l-5-5"/></svg>Fix verified</div>
+      </div>
+    </div>
+
+    <div class="pillars">
+      <div class="pillar ai a" style="--d:3.4s"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span><b>AI drafts</b></div>
+      <div class="pillar cd a" style="--d:3.55s"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg></span><b>Code decides</b></div>
+      <div class="pillar law a" style="--d:3.7s"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><b>Lawyer approves</b></div>
+    </div>
+  </section>
+
+  <!-- ═════════════════ 3 · ARCHITECTURE ═════════════════ -->
+  <section class="slide">
+    <div class="top a"><div class="brand"><span class="logo">L</span>Lexer</div><div class="num"><b>03</b> / 04</div></div>
+    <div class="kicker a" style="--d:.1s">Architecture</div>
+    <h1 class="a" style="--d:.2s">AI writes the rules. <span class="g">Code makes the call.</span></h1>
+
+    <div class="arch">
+      <!-- zones -->
+      <div class="zone ai a" style="--d:.35s"><span class="zl">AI zone · writes rules</span></div>
+      <div class="zone det a" style="--d:.45s"><span class="zl">Deterministic zone · decides</span></div>
+
+      <!-- row 1: compile path -->
+      <div class="node n p" style="left:0; top:62px; --d:.6s"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M9 10h6M9 14h6M9 18h3"/></svg></span><b>Guidelines</b><span>PDF / text</span></div>
+      <div class="wire" style="left:190px; top:126px; width:60px; --d:.9s"><span class="pk" style="--dd:1.2s; --c:var(--violet)"></span></div>
+      <div class="node v p" style="left:250px; top:62px; --d:1s"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/></svg></span><b>LLM compiler</b><span>clause → rule + tests</span></div>
+      <div class="wire" style="left:440px; top:126px; width:60px; --d:1.3s"><span class="pk" style="--dd:1.6s; --c:var(--violet)"></span></div>
+      <div class="node g p" style="left:500px; top:62px; --d:1.4s"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/></svg></span><b>Test runner</b><span>runs its own tests</span></div>
+      <div class="loop" style="left:442px; top:200px; --d:1.7s"><svg class="i" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></div>
+      <span class="loop-l a" style="left:505px; top:216px; --d:1.9s">repair ×3</span>
+
+      <div class="wire" style="left:690px; top:126px; width:200px; --d:1.8s"><span class="pk" style="--dd:2.1s"></span></div>
+      <div class="node a p" style="left:890px; top:62px; --d:2s"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><b>Attorney</b><span>approves every rule</span></div>
+      <div class="wire" style="left:1080px; top:126px; width:60px; --d:2.3s"><span class="pk" style="--dd:2.6s"></span></div>
+      <div class="node g p" style="left:1140px; top:62px; --d:2.4s"><span class="ic"><svg class="i" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span><b>Rule library</b><span>typed JSON rules</span></div>
+      <div class="wire v" style="left:1234px; top:190px; height:91px; --d:2.6s"><span class="pk" style="--dd:2.9s"></span></div>
+      <div class="wire rev" style="left:595px; top:280px; width:642px; --d:2.75s"><span class="pk" style="--dd:3s"></span></div>
+      <div class="wire v" style="left:594px; top:281px; height:59px; --d:2.95s"><span class="pk" style="--dd:3.2s"></span></div>
+      <span class="loop-l a" style="left:900px; top:254px; --d:3s; color:var(--brand)">approved rules only</span>
+
+      <!-- row 2: check path -->
+      <div class="node n p" style="left:0; top:340px; --d:2.9s"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 9h16M4 14h16M10 4v16"/></svg></span><b>Invoice</b><span>CSV / LEDES</span></div>
+      <div class="wire" style="left:190px; top:404px; width:310px; --d:3.1s"><span class="pk" style="--dd:3.4s"></span></div>
+      <div class="node g p" style="left:500px; top:340px; --d:3.2s"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/></svg></span><b>Rule engine</b><span>no AI · same answer</span></div>
+      <div class="wire" style="left:690px; top:404px; width:200px; --d:3.4s"><span class="pk" style="--dd:3.7s; --c:var(--red)"></span></div>
+      <div class="node r p" style="left:890px; top:340px; --d:3.5s"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M5 21V4h10l1 2h4v9h-9l-1-2H5"/></svg></span><b>Flags</b><span>clause + $ impact</span></div>
+      <div class="wire" style="left:1080px; top:404px; width:60px; --d:3.7s"><span class="pk" style="--dd:4s"></span></div>
+      <div class="node n p" style="left:1140px; top:340px; --d:3.8s; width:210px"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span><b>Audit log</b><span>who · what · when</span></div>
+    </div>
+
+    <div class="stack">
+      <span class="tag gray p" style="--d:4s">Next.js + TypeScript</span>
+      <span class="tag gray p" style="--d:4.08s">Typed rule DSL</span>
+      <span class="tag gray p" style="--d:4.16s">LLM structured outputs</span>
+      <span class="tag gray p" style="--d:4.24s">Prisma + SQLite → Postgres</span>
+      <span class="tag green p" style="--d:4.32s">136 tests passing</span>
+    </div>
+  </section>
+
+  <!-- ═════════════════ 4 · BUSINESS ═════════════════ -->
+  <section class="slide">
+    <div class="top a"><div class="brand"><span class="logo">L</span>Lexer</div><div class="num"><b>04</b> / 04</div></div>
+    <div class="kicker a" style="--d:.1s">The business</div>
+    <h1 class="a" style="--d:.2s">Every industry runs on a <span class="g">rulebook.</span></h1>
+
+    <div class="biz">
+      <div class="card roi a" style="--d:.4s">
+        <span class="lbl">Start: law-firm billing</span>
+        <h3>Example firm</h3>
+        <div class="eqn">
+          <div class="row a" style="--d:.8s">Billed to corporate clients <b>$10M</b></div>
+          <div class="row a" style="--d:1s">Cut by client review <b class="r">4–8%</b></div>
+          <div class="row a" style="--d:1.2s">Lexer catches it <b style="color:#7ee2a8">before billing</b></div>
+        </div>
+        <div class="total a" style="--d:1.3s">
+          <b>$<span data-count="400" data-delay="1400">0</span>K–$<span data-count="800" data-delay="1400">0</span>K</b>
+          <span>protected every year</span>
+        </div>
+      </div>
+
+      <div class="uses">
+        <div class="hd a" style="--d:.5s"><b>Same engine, new rulebooks</b><span class="tag violet">SaaS · per seat + per rulebook</span></div>
+        <div class="ucs">
+          <div class="card uc legal a" style="--d:.7s; --d2:.9s">
+            <div class="row1"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/></svg></span><b>Legal billing</b><span class="tag green">Live demo</span></div>
+            <div class="big"><span data-count="56" data-delay="1200">0</span>%</div>
+            <div class="what">of invoices break a billing rule</div>
+            <span class="src">LegalBillReview.com × In-House Connect, 2025</span>
+          </div>
+          <div class="card uc imm a" style="--d:.85s">
+            <div class="row1"><span class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span><b>Immigration</b><span class="tag violet">Built</span></div>
+            <div class="big">H-1B</div>
+            <div class="what">pre-filing checklist → tested rules</div>
+            <span class="src">Wage, worksite &amp; filing-window rules, compiled</span>
+          </div>
+          <div class="card uc health a" style="--d:1s">
+            <div class="row1"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 21s-8-4.5-8-11a5 5 0 0 1 8-4 5 5 0 0 1 8 4c0 6.5-8 11-8 11z"/><path d="M12 9v6M9 12h6"/></svg></span><b>Healthcare claims</b><span class="tag gray">Next</span></div>
+            <div class="big"><span data-count="20" data-delay="1500">0</span>%</div>
+            <div class="what">of in-network claims denied</div>
+            <span class="src">KFF, HealthCare.gov insurers, 2023</span>
+          </div>
+          <div class="card uc exp a" style="--d:1.15s">
+            <div class="row1"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span><b>Corporate expenses</b><span class="tag gray">Next</span></div>
+            <div class="big">1 in <span data-count="5" data-delay="1650">0</span></div>
+            <div class="what">expense reports have errors</div>
+            <span class="src">GBTA Foundation study</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="chrome">
+  <button id="prev" aria-label="Previous slide">←</button>
+  <div class="pips" id="pips"></div>
+  <button id="next" aria-label="Next slide">→</button>
+  <button id="fs" aria-label="Fullscreen">⛶</button>
+</div>
+
+<script>
+  const stage = document.getElementById("stage");
+  const slides = [...document.querySelectorAll(".slide")];
+  const pips = document.getElementById("pips");
+  let i = 0;
+  slides.forEach((_, n) => { const p = document.createElement("span"); p.className = "pip"; p.onclick = () => go(n); pips.appendChild(p); });
+
+  function go(n) {
+    n = Math.max(0, Math.min(slides.length - 1, n));
+    const prev = slides[i];
+    if (n !== i) { prev.classList.remove("active"); prev.classList.add("leave"); setTimeout(() => prev.classList.remove("leave"), 700); }
+    i = n;
+    // restart CSS animations on the incoming slide
+    const s = slides[i];
+    s.classList.remove("active"); void s.offsetWidth; s.classList.add("active");
+    [...pips.children].forEach((p, k) => p.classList.toggle("on", k === i));
+    s.querySelectorAll("[data-count]").forEach(countUp);
+  }
+
+  function countUp(el) {
+    const end = +el.dataset.count, delay = +el.dataset.delay || 0;
+    el.textContent = "0";
+    clearTimeout(el._t); cancelAnimationFrame(el._r);
+    el._t = setTimeout(() => {
+      const t0 = performance.now(), dur = 1200;
+      const step = (t) => {
+        const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(end * e);
+        if (p < 1) el._r = requestAnimationFrame(step);
+      };
+      el._r = requestAnimationFrame(step);
+    }, delay);
+  }
+
+  function fit() {
+    const s = Math.min(innerWidth / 1600, innerHeight / 900) * (document.fullscreenElement ? 1 : 0.95);
+    stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+  }
+  function toggleFs() { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.(); }
+
+  addEventListener("resize", fit);
+  document.addEventListener("fullscreenchange", fit);
+  new ResizeObserver(fit).observe(document.documentElement);
+  addEventListener("keydown", (e) => {
+    if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); go(i + 1); }
+    if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); go(i - 1); }
+    if (e.key === "f" || e.key === "F") toggleFs();
+    if (e.key === "r" || e.key === "R") go(i); // replay animations
+  });
+  document.getElementById("prev").onclick = () => go(i - 1);
+  document.getElementById("next").onclick = () => go(i + 1);
+  document.getElementById("fs").onclick = toggleFs;
+  fit(); go(0);
+</script>
+</body>
+</html>

@@ -33,18 +33,25 @@ export default function NewInvoicePage() {
   const [period, setPeriod] = useState("2026-10");
   const [csv, setCsv] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState(false);
 
   const parsed = useMemo(() => parseCsvObjects(csv), [csv]);
-  const missing = csv.trim() ? missingHeaders(parsed.headers) : [];
+  const isLedes = /^\s*LEDES1998B/i.test(csv);
+  const ledesCount = isLedes ? csv.split(/\r?\n/).filter((l) => l.trim().endsWith("[]")).length - 1 : 0;
+  const missing = csv.trim() && !isLedes ? missingHeaders(parsed.headers) : [];
 
   const errors = {
     matterId: matterId.trim() ? null : "Matter ID is required.",
     period: /^\d{4}-\d{2}$/.test(period.trim()) ? null : "Use YYYY-MM.",
     csv: !csv.trim()
-      ? "Paste or upload a CSV."
-      : missing.length
+      ? "Paste or upload a CSV or LEDES file."
+      : isLedes
+        ? ledesCount > 0
+          ? null
+          : "LEDES file has no line items."
+        : missing.length
         ? `Missing columns: ${missing.join(", ")}`
         : parsed.rows.length === 0
           ? "CSV has no data rows."
@@ -59,6 +66,7 @@ export default function NewInvoicePage() {
     reader.onload = () => {
       setCsv(typeof reader.result === "string" ? reader.result : "");
       setFileName(f.name);
+      setFile(f);
     };
     reader.onerror = () => toast.error("Could not read file");
     reader.readAsText(f);
@@ -68,6 +76,7 @@ export default function NewInvoicePage() {
   function loadSample() {
     setCsv(SAMPLE_INVOICE_CSV);
     setFileName("invoice-oct.csv (sample)");
+    setFile(null);
     setMatterId(DEMO.matterId);
     setPeriod("2026-10");
     setTouched(false);
@@ -79,12 +88,10 @@ export default function NewInvoicePage() {
     if (!valid || submitting) return;
     setSubmitting(true);
     try {
-      const inv = await api.createInvoice({
-        clientId: DEMO.clientId,
-        matterId: matterId.trim(),
-        period: period.trim(),
-        csv,
-      });
+      // Files and LEDES go through the server's CSV/LEDES auto-detector; pasted CSV uses the JSON endpoint.
+      const upload = file ?? (isLedes ? new File([csv], "pasted.ledes", { type: "text/plain" }) : null);
+      const meta = { clientId: DEMO.clientId, matterId: matterId.trim(), period: period.trim() };
+      const inv = upload ? await api.uploadInvoice(upload, meta) : await api.createInvoice({ ...meta, csv });
       toast.success("Invoice uploaded", { description: "Opening the check view…" });
       router.push(`/invoices/${inv.id}`);
     } catch (err) {
@@ -102,7 +109,7 @@ export default function NewInvoicePage() {
       <PageHeader
         eyebrow="Invoices"
         title="Upload invoice"
-        subtitle="Paste or upload a LEDES-style CSV of time entries to check against an approved rulebook."
+        subtitle="Upload a CSV or LEDES 1998B file of time entries (or paste one) to check against an approved rulebook."
         actions={
           <Button type="button" variant="outline" onClick={loadSample}>
             <FileSpreadsheet className="mr-2 h-4 w-4" />
@@ -163,9 +170,9 @@ export default function NewInvoicePage() {
                   "Create invoice"
                 )}
               </Button>
-              {parsed.rows.length > 0 && !missing.length && (
+              {(isLedes ? ledesCount > 0 : parsed.rows.length > 0 && !missing.length) && (
                 <p className="mt-3 text-xs text-muted-foreground">
-                  {parsed.rows.length} entries ready to import.
+                  {isLedes ? `${ledesCount} LEDES 1998B line items` : `${parsed.rows.length} entries`} ready to import.
                 </p>
               )}
             </div>
@@ -177,14 +184,14 @@ export default function NewInvoicePage() {
             <CardContent className="space-y-2 pt-6">
               <div className="flex items-center justify-between">
                 <label htmlFor="inv-csv" className={LABEL}>
-                  CSV
+                  CSV or LEDES 1998B
                 </label>
                 <div className="flex items-center gap-3">
                   {fileName && <span className="text-xs text-muted-foreground">{fileName}</span>}
                   <input
                     ref={fileRef}
                     type="file"
-                    accept=".csv,text/csv,text/plain"
+                    accept=".csv,.txt,.ledes,.lds,.tsv,text/csv,text/plain"
                     className="hidden"
                     onChange={onFile}
                   />
@@ -205,6 +212,7 @@ export default function NewInvoicePage() {
                 onChange={(e) => {
                   setCsv(e.target.value);
                   setFileName(null);
+                  setFile(null);
                 }}
                 placeholder="date,timekeeperId,timekeeperName,role,hours,rate,taskCode,activityCode,narrative"
                 className="min-h-[220px] resize-y font-mono text-xs leading-5"
@@ -226,7 +234,11 @@ export default function NewInvoicePage() {
                   </span>
                 )}
               </div>
-              {preview.length === 0 ? (
+              {isLedes ? (
+                <div className="rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground">
+                  LEDES 1998B detected · {ledesCount} line items · parsed on the server when you create the invoice.
+                </div>
+              ) : preview.length === 0 ? (
                 <div className="rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground">
                   Parsed rows will appear here.
                 </div>

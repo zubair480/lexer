@@ -1,6 +1,6 @@
 /**
  * Lexer frontend API client (F2).
- * Per-endpoint live/mock switch via `isLive()` (lib/client/live.ts).
+ * Talks to the live backend; NEXT_PUBLIC_USE_MOCKS=1 switches to mocks (lib/client/live.ts).
  * Mock mode keeps in-memory session state and adds 250–600 ms latency.
  */
 import {
@@ -18,6 +18,7 @@ import {
   type InvoiceCheckResult,
   type InvoiceSummary,
   type ReviewItem,
+  type RecordType,
   type Role,
   type Rulebook,
   type RulebookSummary,
@@ -42,10 +43,11 @@ import {
 /* ───────────────────────────── HTTP ───────────────────────────── */
 
 async function http<T>(url: string, method: "GET" | "POST" | "PATCH" = "GET", body?: unknown): Promise<T> {
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
   const res = await fetch(url, {
     method,
-    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    headers: body !== undefined && !isForm ? { "Content-Type": "application/json" } : undefined,
+    body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
     cache: "no-store",
   });
   let data: unknown = null;
@@ -412,6 +414,28 @@ const mock = {
 
 /* ───────────────────────────── Public client ───────────────────────────── */
 
+export interface UploadRulebookMeta {
+  title?: string;
+  clientName?: string;
+  recordType?: RecordType;
+}
+export interface UploadInvoiceMeta {
+  clientId?: string;
+  matterId?: string;
+  period?: string;
+}
+
+function toForm(file: File, meta: Record<string, string | undefined>): FormData {
+  const fd = new FormData();
+  fd.append("file", file, file.name);
+  for (const [k, v] of Object.entries(meta)) if (v && v.trim()) fd.append(k, v.trim());
+  return fd;
+}
+
+async function readText(file: File): Promise<string> {
+  return file.text();
+}
+
 const use = (key: ApiKey): boolean => isLive(key);
 
 export const api = {
@@ -441,6 +465,28 @@ export const api = {
 
   createInvoice: (req: CreateInvoiceReq): Promise<Invoice> =>
     use("invoices") ? http(API.invoices(), "POST", req) : mock.createInvoice(req),
+
+  /** Upload a guideline document (.md/.txt/.pdf/.docx/.html); the server extracts text and segments clauses. */
+  uploadRulebook: async (file: File, meta: UploadRulebookMeta = {}): Promise<Rulebook> => {
+    if (use("uploadRulebook")) return http(API.uploadRulebook(), "POST", toForm(file, { ...meta }));
+    return mock.createRulebook({
+      title: meta.title || file.name.replace(/\.[^.]+$/, ""),
+      clientName: meta.clientName || DEMO.clientName,
+      recordType: meta.recordType ?? "time_entry",
+      sourceText: await readText(file),
+    });
+  },
+
+  /** Upload an invoice file (CSV or LEDES 1998B, auto-detected server-side). */
+  uploadInvoice: async (file: File, meta: UploadInvoiceMeta = {}): Promise<Invoice> => {
+    if (use("uploadInvoice")) return http(API.uploadInvoice(), "POST", toForm(file, { ...meta }));
+    return mock.createInvoice({
+      clientId: meta.clientId || DEMO.clientId,
+      matterId: meta.matterId || DEMO.matterId,
+      period: meta.period || "2026-10",
+      csv: await readText(file),
+    });
+  },
 
   getInvoice: (id: string): Promise<Invoice> =>
     use("invoice") ? http(API.invoice(id)) : mock.getInvoice(id),

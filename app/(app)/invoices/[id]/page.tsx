@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import type { Clause, Flag, Invoice, InvoiceTotals } from "@/shared/contract";
+import type { Flag, Invoice, InvoiceTotals, Rulebook } from "@/shared/contract";
 import { DEMO } from "@/shared/contract";
 import { api } from "@/lib/client/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,7 +41,8 @@ export default function InvoicePage() {
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [flags, setFlags] = useState<Flag[]>([]);
-  const [clauses, setClauses] = useState<Clause[]>([]);
+  const [rulebooks, setRulebooks] = useState<Rulebook[]>([]);
+  const [rulebookId, setRulebookId] = useState<string>(DEMO.rulebookId);
   const [baseTotals, setBaseTotals] = useState<InvoiceTotals | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -54,15 +55,30 @@ export default function InvoicePage() {
     setLoading(true);
     setError(null);
     try {
-      const [inv, fl] = await Promise.all([api.getInvoice(id), api.getInvoiceFlags(id).catch(() => [] as Flag[])]);
+      const [inv, fl, summaries] = await Promise.all([
+        api.getInvoice(id),
+        api.getInvoiceFlags(id).catch(() => [] as Flag[]),
+        api.listRulebooks().catch(() => []),
+      ]);
+      // Invoices hold time entries, so only time-entry rulebooks can check them.
+      const books = (
+        await Promise.all(
+          summaries.filter((r) => r.recordType === "time_entry").map((r) => api.getRulebook(r.id).catch(() => null)),
+        )
+      ).filter((r): r is Rulebook => r !== null);
+      // Default: the rulebook that produced existing flags, else the demo rulebook, else one with approved rules.
+      const owner = books.find((b) => fl.some((f) => b.rules.some((r) => r.id === f.ruleId)));
+      const fallback =
+        books.find((b) => b.id === DEMO.rulebookId) ?? books.find((b) => b.rules.some((r) => r.status === "active")) ?? books[0];
+      const chosen = owner ?? fallback;
+      const chosenRuleIds = new Set(chosen?.rules.map((r) => r.id) ?? []);
+      const own = fl.filter((f) => chosenRuleIds.has(f.ruleId));
+      setRulebooks(books);
+      if (chosen) setRulebookId(chosen.id);
       setInvoice(inv);
       setBaseTotals(inv.totals);
-      setFlags(fl);
-      setHasChecked(fl.length > 0);
-      api
-        .getRulebook(DEMO.rulebookId)
-        .then((rb) => setClauses(rb.clauses))
-        .catch(() => setClauses([]));
+      setFlags(own);
+      setHasChecked(own.length > 0);
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
     } finally {
@@ -79,10 +95,32 @@ export default function InvoicePage() {
     return hasChecked ? computeTotals(baseTotals, flags) : baseTotals;
   }, [baseTotals, flags, hasChecked]);
 
+  const rulebook = rulebooks.find((r) => r.id === rulebookId) ?? null;
+  const activeRules = rulebook?.rules.filter((r) => r.status === "active").length ?? 0;
+  const clauses = useMemo(() => rulebooks.flatMap((r) => r.clauses), [rulebooks]);
+
+  const switchRulebook = async (rid: string) => {
+    setRulebookId(rid);
+    setSelectedEntryId(null);
+    setPanelOpen(false);
+    const book = rulebooks.find((r) => r.id === rid);
+    const ruleIds = new Set(book?.rules.map((r) => r.id) ?? []);
+    const fl = await api.getInvoiceFlags(id).catch(() => [] as Flag[]);
+    const own = fl.filter((f) => ruleIds.has(f.ruleId));
+    setFlags(own);
+    setHasChecked(own.length > 0);
+  };
+
   const runCheck = async () => {
+    if (rulebook && activeRules === 0) {
+      toast.error("No approved rules in this rulebook", {
+        description: "Compile it and approve the verified rules first.",
+      });
+      return;
+    }
     setChecking(true);
     try {
-      const res = await api.checkInvoice(id);
+      const res = await api.checkInvoice(id, rulebookId);
       setFlags(res.flags);
       setBaseTotals(res.totals);
       setHasChecked(true);
@@ -111,7 +149,33 @@ export default function InvoicePage() {
       <PageHeader
         eyebrow="Invoice check"
         title={title}
-        subtitle={`${DEMO.clientName} · checked against Acme Outside Counsel Guidelines`}
+        subtitle={
+          rulebook
+            ? `${rulebook.clientName} · checked against ${rulebook.title} · ${activeRules} approved rule${activeRules === 1 ? "" : "s"}`
+            : "Choose a rulebook to check against"
+        }
+        actions={
+          rulebooks.length > 0 ? (
+            <label className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Rulebook
+              <select
+                value={rulebookId}
+                onChange={(e) => void switchRulebook(e.target.value)}
+                disabled={checking}
+                className="h-9 max-w-[340px] rounded-md border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground shadow-sm"
+              >
+                {rulebooks.map((r) => {
+                  const n = r.rules.filter((x) => x.status === "active").length;
+                  return (
+                    <option key={r.id} value={r.id}>
+                      {r.title} {n ? `(${n} active)` : "(not approved)"}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+          ) : undefined
+        }
       />
 
       {loading ? (
