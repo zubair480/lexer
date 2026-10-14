@@ -1,5 +1,5 @@
 /**
- * CounselLint — synthetic frontend fixtures (F2).
+ * Lexer — synthetic frontend fixtures (F2).
  * All data is fictional. Types come only from the shared contract.
  */
 import {
@@ -623,7 +623,7 @@ export const MOCK_REVIEW: ReviewItem[] = [
     id: "rev_cl_3_7",
     type: "judgment_clause",
     title: "§3.7 Reasonableness needs attorney interpretation",
-    detail: "\"Reasonable and necessary\" has no objective threshold, so CounselLint will not auto-enforce it. Review flagged-adjacent entries manually or add a firm-specific standard (e.g., max hours per task code).",
+    detail: "\"Reasonable and necessary\" has no objective threshold, so Lexer will not auto-enforce it. Review flagged-adjacent entries manually or add a firm-specific standard (e.g., max hours per task code).",
     refId: "cl_3_7",
     createdAt: "2026-10-12T15:06:10.000Z",
   },
@@ -639,11 +639,11 @@ export const MOCK_REVIEW: ReviewItem[] = [
 
 export const MOCK_AUDIT: AuditEntry[] = [
   { id: "aud_1", actor: DEMO.approver, action: "rulebook.uploaded", targetType: "rulebook", targetId: DEMO.rulebookId, note: "Acme OCG 2026 (7 clauses)", createdAt: "2026-10-12T15:04:00.000Z" },
-  { id: "aud_2", actor: "CounselLint compiler", action: "rule.repaired", targetType: "rule", targetId: r("3.2"), note: "Attempt 1 failed 1/4 tests; repaired on attempt 2", createdAt: "2026-10-12T15:05:41.000Z" },
-  { id: "aud_3", actor: "CounselLint compiler", action: "rulebook.compiled", targetType: "rulebook", targetId: DEMO.rulebookId, note: "6 verified, 1 needs interpretation", createdAt: "2026-10-12T15:06:10.000Z" },
+  { id: "aud_2", actor: "Lexer compiler", action: "rule.repaired", targetType: "rule", targetId: r("3.2"), note: "Attempt 1 failed 1/4 tests; repaired on attempt 2", createdAt: "2026-10-12T15:05:41.000Z" },
+  { id: "aud_3", actor: "Lexer compiler", action: "rulebook.compiled", targetType: "rulebook", targetId: DEMO.rulebookId, note: "6 verified, 1 needs interpretation", createdAt: "2026-10-12T15:06:10.000Z" },
   { id: "aud_4", actor: DEMO.approver, action: "invoice.uploaded", targetType: "invoice", targetId: DEMO.invoiceId, note: "20 entries, matter ACME-LIT-0042", createdAt: "2026-10-12T15:30:00.000Z" },
   { id: "aud_5", actor: DEMO.approver, action: "flag.dismissed", targetType: "flag", targetId: "flag_sept_3_2", note: "Subject clear from task code", createdAt: "2026-09-30T19:12:00.000Z" },
-  { id: "aud_6", actor: "CounselLint eval", action: "eval.run", targetType: "invoice", targetId: DEMO.invoiceId, note: "14/15 entries match golden labels", createdAt: "2026-10-12T15:45:00.000Z" },
+  { id: "aud_6", actor: "Lexer eval", action: "eval.run", targetType: "invoice", targetId: DEMO.invoiceId, note: "14/15 entries match golden labels", createdAt: "2026-10-12T15:45:00.000Z" },
 ];
 
 export function summarizeInvoice(inv: Invoice): InvoiceSummary {

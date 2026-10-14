@@ -24,7 +24,6 @@ async function compileBook(file: string, rbId: string, rt: RecordType) {
 function expectGoodTests(rule: Rule, rt: RecordType) {
   const tests = generateTests(rule, rt);
   const res = runTests(rule, tests);
-  if (process.env.G1DBG) console.log(rule.clauseId, JSON.stringify(rule.violation), JSON.stringify(tests.map((t) => [t.name, t.expectFlagged])), JSON.stringify(res.map((r) => r.passed)));
   expect(res.every((r) => r.passed)).toBe(true);
   expect(tests.filter((t) => t.expectFlagged).length).toBeGreaterThanOrEqual(2);
   expect(tests.filter((t) => !t.expectFlagged).length).toBeGreaterThanOrEqual(2);
@@ -143,6 +142,41 @@ describe("unseen clauses", () => {
       "Counsel will cooperate with Acme's in-house team.",
     ]) {
       expect(compileFromText({ number: "9.9", title: "x", text }, "time_entry"), text).toBeNull();
+    }
+  });
+});
+
+describe("offline wiring: compileClause for clauses without a reference rule", () => {
+  it("unseen clause compiles to verified with generated tests; judgment clause ends uncertain; seeded 3.2 still repairs", async () => {
+    const prevMode = process.env.LLM_MODE;
+    const prevDelay = process.env.LLM_OFFLINE_DELAY_MS;
+    process.env.LLM_MODE = "offline";
+    process.env.LLM_OFFLINE_DELAY_MS = "0";
+    try {
+      const { compileClause } = await import("@/lib/compiler/compile");
+      const { resetOfflineState } = await import("@/lib/server/offline");
+      resetOfflineState();
+      const mk = (number: string, title: string, text: string) => ({
+        id: `rb_new__${number}`, rulebookId: "rb_new", number, title, text, start: 0, end: text.length,
+      });
+      const ok = await compileClause(mk("2.1", "Rate cap", "Partner rates may not exceed $900 per hour."), "time_entry");
+      expect(ok.status).toBe("verified");
+      expect(ok.rule?.id).toBe("rule_rb_new__2.1");
+      expect(ok.testResults.every((r) => r.passed)).toBe(true);
+      // A new rulebook re-using number 3.1 must NOT get Acme's block-billing reference rule.
+      const renum = await compileClause(mk("3.1", "Daily cap", "Entries must not exceed 12 hours."), "time_entry");
+      expect(renum.status).toBe("verified");
+      expect(renum.rule?.violation).toEqual({ field: "hours", op: "gt", value: 12 });
+      const judg = await compileClause(mk("2.2", "Reasonableness", "Staffing must be reasonable."), "time_entry");
+      expect(judg.status).toBe("uncertain");
+      const acme = await segmentRulebook("rb_acme_ocg", read("acme-ocg.md"));
+      const c32 = acme.find((c) => c.number === "3.2")!;
+      const seeded = await compileClause(c32, "time_entry");
+      expect(seeded.status).toBe("verified");
+      expect(seeded.attempts).toBe(2);
+    } finally {
+      if (prevMode === undefined) delete process.env.LLM_MODE; else process.env.LLM_MODE = prevMode;
+      if (prevDelay === undefined) delete process.env.LLM_OFFLINE_DELAY_MS; else process.env.LLM_OFFLINE_DELAY_MS = prevDelay;
     }
   });
 });

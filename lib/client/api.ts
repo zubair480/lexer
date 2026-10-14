@@ -1,5 +1,5 @@
 /**
- * CounselLint frontend API client (F2).
+ * Lexer frontend API client (F2).
  * Per-endpoint live/mock switch via `isLive()` (lib/client/live.ts).
  * Mock mode keeps in-memory session state and adds 250–600 ms latency.
  */
@@ -240,7 +240,7 @@ export function __mockSaveRulebook(rb: Rulebook): void {
   const copy = structuredClone(rb);
   if (i >= 0) state.rulebooks[i] = copy;
   else state.rulebooks.push(copy);
-  audit("CounselLint compiler", "rulebook.compiled", "rulebook", rb.id, `${rb.rules.filter((x) => x.status === "verified").length} verified`);
+  audit("Lexer compiler", "rulebook.compiled", "rulebook", rb.id, `${rb.rules.filter((x) => x.status === "verified").length} verified`);
 }
 
 /* ───────────────────────────── Mock implementations ───────────────────────────── */
@@ -311,7 +311,7 @@ const mock = {
         delete rule.approvedBy;
         delete rule.approvedAt;
       }
-      audit("CounselLint compiler", "rule.recompiled", "rule", ruleId);
+      audit("Lexer compiler", "rule.recompiled", "rule", ruleId);
       return rule;
     }),
   listInvoices: (): Promise<InvoiceSummary[]> => delay(() => state.invoices.map(summarizeInvoice)),
@@ -355,7 +355,7 @@ const mock = {
       const f = findFlag(flagId);
       const entry = state.invoices.flatMap((i) => i.entries).find((e) => e.id === f.entryId);
       f.suggestion = mockSuggestion(f, entry);
-      audit("CounselLint", "flag.suggested", "flag", flagId, f.suggestion.explanation);
+      audit("Lexer", "flag.suggested", "flag", flagId, f.suggestion.explanation);
       return f;
     }),
   updateFlag: (flagId: string, req: UpdateFlagReq): Promise<Flag> =>

@@ -253,7 +253,7 @@ function leafVariants(field: string, op: string, value: unknown, want: boolean, 
     case "not_multiple_of": {
       const m = Number(value);
       if (!Number.isFinite(m) || m <= 0) return [];
-      if (want) return [{ [field]: round(12 * m + m / 2, 4) }, { [field]: round(5 * m + m / 4, 4) }];
+      if (want) return [{ [field]: round(12 * m + m / 2, 4) }, { [field]: round(7 * m + m / 2, 4) }];
       return [{ [field]: round(12 * m, 4) }, { [field]: round(20 * m, 4) }];
     }
     case "gt_field": case "lt_field": {
@@ -487,6 +487,11 @@ function groupTests(rule: Rule, agg: Aggregate, rt: RecordType): RuleTest[] {
   return [];
 }
 
+const VARIATIONS: Array<{ label: string; set: Rec }> = [
+  { label: "partner, longer entry", set: { timekeeperId: "tk_hale", timekeeperName: "Margaret Hale", role: "partner", rate: 950, hours: 2.4, date: "2026-10-14", narrative: "Reviewed expert report from defense damages consultant" } },
+  { label: "paralegal, short entry", set: { timekeeperId: "tk_nair", timekeeperName: "Priya Nair", role: "paralegal", rate: 280, hours: 0.7, date: "2026-10-21", offeredWage: 131000, worksiteZip: "94107", filingDate: "2026-05-01" } },
+];
+
 /* ───────── public API ───────── */
 
 export function generateTests(rule: Rule, recordType: RecordType): RuleTest[] {
@@ -505,8 +510,32 @@ export function generateTests(rule: Rule, recordType: RecordType): RuleTest[] {
     return true;
   });
   // Validate against the real engine; keep only tests whose outcome matches the intent.
-  const results = runTests(rule, candidates);
-  const kept = candidates.filter((_, i) => results[i]?.passed);
+  const validate = (ts: RuleTest[]) => {
+    const res = runTests(rule, ts);
+    return ts.filter((_, i) => res[i]?.passed);
+  };
+  let kept = validate(candidates);
+  // Top up a thin side with realistic variants of an existing test (different timekeeper / hours / day),
+  // still validated by the engine.
+  for (const want of [true, false]) {
+    const side = kept.filter((t) => t.expectFlagged === want);
+    if (side.length >= 2 || !side.length || isAggregate(rule.violation)) continue;
+    const src = side[0];
+    const variants: RuleTest[] = VARIATIONS.map((v, i) => ({
+      name: `${src.name} (variant: ${v.label})`,
+      expectFlagged: want,
+      records: src.records.map((r) => {
+        const out: Rec = { ...r, id: `v${i}` };
+        for (const [k, val] of Object.entries(v.set)) {
+          if (k in rule.violation || JSON.stringify(rule).includes(`"${k}"`)) continue; // never touch fields the rule reads
+          out[k] = val;
+        }
+        if (recordType === "time_entry") out.amount = round(Number(out.hours) * Number(out.rate));
+        return out;
+      }),
+    })).filter((t) => JSON.stringify(t.records) !== JSON.stringify(src.records.map((r) => ({ ...r, id: (t.records[0] as Rec).id }))));
+    kept = [...kept, ...validate(variants).slice(0, 2 - side.length)];
+  }
   const pos = kept.filter((t) => t.expectFlagged).slice(0, 3);
   const neg = kept.filter((t) => !t.expectFlagged).slice(0, 3);
   return [...pos, ...neg];

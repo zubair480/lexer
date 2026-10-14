@@ -44,8 +44,9 @@ export function resetOfflineState(): void {
 
 function clauseNumber(user: string): string | null {
   const m =
-    user.match(/Clause\s+§?\s*(\d+(?:\.\d+)+)/i) ??
-    user.match(/GUIDELINE CLAUSE\s+§?\s*(\d+(?:\.\d+)+)/i) ??
+    // Uploaded documents may number clauses "1", "12" or "P1" (paragraph fallback), not just "3.1".
+    user.match(/Clause\s+§?\s*(P?\d+(?:\.\d+)*)\b/i) ??
+    user.match(/GUIDELINE CLAUSE\s+§?\s*(P?\d+(?:\.\d+)*)\b/i) ??
     user.match(/§\s*(\d+(?:\.\d+)+)/);
   return m ? m[1] : null;
 }
@@ -156,8 +157,7 @@ function flawRule(rule: AnyRule): AnyRule {
 
 /** G1: clause body from a compile/repair prompt: the lines after `Clause §N "Title":` up to the first blank line. */
 function clauseBody(user: string): string {
-  const lines = user.split(/?
-/);
+  const lines = user.split(/\r?\n/);
   const i = lines.findIndex((l) => /^Clause\s+§/i.test(l.trim()));
   if (i < 0) return "";
   const out: string[] = [];
@@ -165,8 +165,7 @@ function clauseBody(user: string): string {
     if (!l.trim()) break;
     out.push(l);
   }
-  return out.join("
-").trim();
+  return out.join("\n").trim();
 }
 
 let seededText: string | null = null;
@@ -185,8 +184,7 @@ function isSeededClause(body: string): boolean {
           return "";
         }
       })
-      .join("
-");
+      .join("\n");
   }
   return seededText.includes(squash(body));
 }
@@ -208,7 +206,8 @@ function compileOutput(user: string, opts: { allowFlaw: boolean }): { rule: AnyR
   const title = clauseTitle(user);
   const ref = isSeededClause(clauseBody(user)) ? findReference(num, rt, title) : null;
   if (!ref) return compileFromClauseText(user, num, rt, title);
-  const key = num ?? String(ref.clauseId ?? "");
+  // Key fixtures by the reference rule's own clause (an uploaded "1" may reuse seeded "3.1" text).
+  const key = String(ref.clauseId ?? "") || (num ?? "");
   const tests = offlineTests()[key.replace(/^.*__/, "")] ?? offlineTests()[key];
   if (!tests) throw new Error(`offline: no fixture tests for clause ${key}`);
 

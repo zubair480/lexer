@@ -64,13 +64,14 @@ export function stemPattern(word: string): string {
   if ((m = w.match(/^(.+[^s])ies$/))) return `${escapeRe(m[1])}(?:y|ies)`;
   if ((m = w.match(/^(.+(?:s|x|ch|sh))es$/))) return `${escapeRe(m[1])}(?:es)?`;
   if ((m = w.match(/^(.+[^s])s$/))) return `${escapeRe(m[1])}s?`;
-  return `${escapeRe(w)}(?:s|es)?`;
+  if (/(s|x|ch|sh)$/.test(w)) return `${escapeRe(w)}(?:es)?`;
+  return `${escapeRe(w)}s?`;
 }
 
 function phraseRegex(phrase: string): string {
   const words = phrase.toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) return "";
-  const head = words.slice(0, -1).map(escapeRe);
+  const head = words.slice(0, -1).map((w) => (/[^aeiou]ing$/.test(w) && w.length > 5 ? stemPattern(w) : escapeRe(w)));
   const last = stemPattern(words[words.length - 1]);
   return [...head, last].join(String.raw`\s+`);
 }
@@ -320,6 +321,12 @@ function hourCap(t: string): Draft | null {
     when = anyOf(cs);
     matched.push("codes");
   }
+  const role = roleIn(t);
+  if (role) {
+    const rc: Condition = { field: "role", op: "eq", value: role };
+    when = when ? { all: [rc, when] } : rc;
+    matched.push(`role:${role}`);
+  }
   if (PER_DAY.test(t)) {
     return {
       severity: severityFrom(t, "warn"),
@@ -356,7 +363,7 @@ function listedTerms(t: string): Draft | null {
     const alts = parts.map((p) => {
       const words = p.toLowerCase().split(/\s+/);
       // "document organization" -> the activity word carries the meaning
-      return words.length > 1 && /(ation|ing|ment)$/.test(words[words.length - 1]) ? stemPattern(words[words.length - 1]) : phraseRegex(p);
+      return words.length === 2 && /^(document|documents|file|files|paper|records?)$/.test(words[0]) ? stemPattern(words[1]) : phraseRegex(p);
     });
     const codes = codesIn(subject);
     const conds: Condition[] = [{ field: "narrative", op: "matches", value: String.raw`\b(?:${alts.join("|")})\b` }];
@@ -373,7 +380,7 @@ function singleProhibition(t: string): Draft | null {
     t.match(/\b(?:may not|must not|shall not|will not|cannot)\s+(?:bill|charge)\s+(?:for\s+)?(.+?)[.;]/i) ??
     t.match(/\bwill not (?:pay|reimburse)\s+(?:for\s+)?(.+?)[.;]/i);
   if (!m) return null;
-  let subject = m[1].trim().replace(/^(all|any|the|time spent on|time for|charges for|fees for)\s+/i, "");
+  let subject = m[1].trim().replace(/^(all|any|the)\s+/i, "").replace(/^(time spent (on|in|for)?|time (on|for)|charges for|fees for)\s*/i, "");
   if (/,/.test(subject)) return null;
   // codes named in the subject => code condition
   const codes = codesIn(subject);
@@ -389,7 +396,9 @@ function singleProhibition(t: string): Draft | null {
   }
   // head phrase: cut at the first qualifier
   subject = subject.split(/\s+(?:between|for|by|of|with|on|in|to|regarding|among|that|which|from|when|where|incurred|performed|billed|related)\b/i)[0].trim();
-  const words = subject.split(/\s+/).filter(Boolean);
+  let words = subject.split(/\s+/).filter(Boolean);
+  if (words.length > 1 && /^(time|work|services|fees|charges|hours)$/i.test(words[words.length - 1])) words = words.slice(0, -1);
+  subject = words.join(" ");
   if (!words.length || words.length > 3) return null;
   if (words.some((w) => !/^[a-z][a-z-]*$/i.test(w))) return null;
   if (words.length === 1 && /^(time|work|entries|entry|tasks?|services?|charges?|fees?|expenses?|it|this)$/i.test(words[0])) return null;
